@@ -5,13 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "next dev --turbo",
-    "dev:server": "nodemon server/index.ts",
-    "dev:all": "concurrently \"npm run dev:server\" \"npm run dev\"",
     "build": "next build",
     "start": "next start",
-    "start:server": "npx ts-node server/index.ts",
-    "lint": "next lint",
-    "test:supabase": "npx tsx scripts/test-supabase.ts"
+    "lint": "next lint"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

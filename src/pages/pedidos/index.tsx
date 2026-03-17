@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { api, Pedido } from '@/services/api';
-import { conectarSocket, eventosServidor } from '@/services/socket';
+import { assinarPedidos, removerAssinaturaPedidos } from '@/services/realtime';
 import PedidoCard from '@/components/pedidoCard/PedidoCard';
 import '@/app/globals.css';
 
@@ -13,7 +13,6 @@ export default function Pedidos() {
   const [meusPedidos, setMeusPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
   const [tabAtiva, setTabAtiva] = useState<'disponiveis' | 'meus'>('disponiveis');
-  const socketRef = useRef<any>(null);
 
   // Função auxiliar para pegar o ID do entregador do localStorage
   const getEntregadorId = (): string | null => {
@@ -44,65 +43,54 @@ export default function Pedidos() {
 
     console.log('👤 Entregador logado:', entregadorData);
 
-    // Conectar ao socket e configurar listeners
-    const socket = conectarSocket();
-    socketRef.current = socket;
-
-    // Entrar na sala do entregador
-    socket.emit('entrar-sala-entregador', entregadorData.id);
-
-    console.log('🔌 Socket status:', socket.connected ? 'conectado' : 'conectando...');
-
-    // Ouvir novos pedidos - remover listener anterior para evitar duplicação
-    socket.off(eventosServidor.NOVO_PEDIDO);
-    socket.on(eventosServidor.NOVO_PEDIDO, (novoPedido: Pedido) => {
-      console.log('📦 [SOCKET] Novo pedido recebido via WebSocket:', novoPedido);
-      if (novoPedido.status === 'pendente') {
-        setPedidosDisponiveis((prev) => {
-          // Evitar duplicados
-          if (prev.find(p => p.id === novoPedido.id)) {
-            console.log('⚠️ Pedido já existe na lista, ignorando...');
-            return prev;
-          }
-          console.log('✅ [SOCKET] Adicionando novo pedido à lista');
-          return [novoPedido, ...prev];
-        });
-        // Notificação visual
-        if ('Notification' in window && Notification.permission === 'granted') {
-          new Notification('Novo pedido disponível!', {
-            body: `Pedido de ${novoPedido.cliente}`,
-            icon: '/favicon.ico',
+    // Assinar mudanças em tempo real com Supabase
+    assinarPedidos(
+      // Novo pedido
+      (novoPedido) => {
+        console.log('📦 [REALTIME] Novo pedido recebido:', novoPedido);
+        if (novoPedido.status === 'pendente') {
+          setPedidosDisponiveis((prev) => {
+            if (prev.find(p => p.id === novoPedido.id)) {
+              console.log('⚠️ Pedido já existe, ignorando...');
+              return prev;
+            }
+            console.log('✅ Adicionando novo pedido à lista');
+            return [novoPedido, ...prev];
           });
+          // Notificação
+          if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('Novo pedido disponível!', {
+              body: `Pedido de ${novoPedido.cliente}`,
+              icon: '/favicon.ico',
+            });
+          }
+        }
+      },
+      // Pedido atualizado
+      (pedidoAtualizado) => {
+        console.log('📝 [REALTIME] Pedido atualizado:', pedidoAtualizado);
+        // Se foi aceito por este entregador
+        if (pedidoAtualizado.status === 'aceito' && pedidoAtualizado.entregador_id === entregadorData.id) {
+          setPedidosDisponiveis((prev) => prev.filter(p => p.id !== pedidoAtualizado.id));
+          setMeusPedidos((prev) => [pedidoAtualizado, ...prev]);
         }
       }
-    });
-
-    // Também ouvir pedido-aceito para atualizar a lista
-    socket.off(eventosServidor.PEDIDO_ACEITO);
-    socket.on(eventosServidor.PEDIDO_ACEITO, (pedidoAceito: Pedido) => {
-      console.log('✅ [SOCKET] Pedido aceito:', pedidoAceito);
-      setPedidosDisponiveis((prev) => prev.filter(p => p.id !== pedidoAceito.id));
-      setMeusPedidos((prev) => [...prev, pedidoAceito]);
-    });
+    );
 
     // Carregar pedidos iniciais
     console.log('🔄 Carregando pedidos iniciais...');
     carregarPedidos(entregadorData.id);
 
-    // Polling de backup para garantir que receba pedidos (caso WebSocket falhe)
+    // Polling de backup
     const intervaloPolling = setInterval(() => {
       const id = getEntregadorId();
-      console.log('🔄 Polling: Carregando pedidos...', { id });
       if (id) {
         carregarPedidos(id);
-      } else {
-        console.warn('⚠️ entregadorId é null, pulando polling');
       }
-    }, 3000);
+    }, 5000);
 
     return () => {
-      socket.off(eventosServidor.NOVO_PEDIDO);
-      socket.off(eventosServidor.PEDIDO_ACEITO);
+      removerAssinaturaPedidos();
       clearInterval(intervaloPolling);
     };
   }, [router]);
