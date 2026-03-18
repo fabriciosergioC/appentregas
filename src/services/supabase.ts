@@ -247,7 +247,7 @@ export const pedidosApi = {
       .from('pedidos')
       .select(`
         *,
-        entregador:entregadores_id (
+        entregador:entregador_id (
           id,
           nome,
           telefone
