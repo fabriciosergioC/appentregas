@@ -207,3 +207,4 @@ COMMENT ON TABLE entregadores_pedidos IS 'Histórico de pedidos por entregador';
 COMMENT ON COLUMN entregadores.localizacao_lat IS 'Latitude da localização atual';
 COMMENT ON COLUMN entregadores.localizacao_lng IS 'Longitude da localização atual';
 COMMENT ON COLUMN pedidos.status IS 'Status: pendente, aceito, em_transito, entregue';
+

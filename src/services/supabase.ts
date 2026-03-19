@@ -24,6 +24,9 @@ export interface Pedido {
   itens: string[];
   status: 'pendente' | 'aceito' | 'em_transito' | 'entregue';
   entregador_id: string | null;
+  estabelecimento_nome: string | null;
+  valor_pedido: number | null;
+  valor_entregador: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -224,7 +227,7 @@ export const pedidosApi = {
   },
 
   // Criar pedido (Estabelecimento)
-  async criarPedido(cliente: string, endereco: string, itens: string[]) {
+  async criarPedido(cliente: string, endereco: string, itens: string[], estabelecimentoNome?: string, valorPedido?: number, valorEntregador?: number) {
     const { data, error } = await supabase
       .from('pedidos')
       .insert([
@@ -233,6 +236,9 @@ export const pedidosApi = {
           endereco,
           itens,
           status: 'pendente',
+          estabelecimento_nome: estabelecimentoNome || null,
+          valor_pedido: valorPedido || null,
+          valor_entregador: valorEntregador || null,
         },
       ])
       .select()

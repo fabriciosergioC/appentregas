@@ -12,6 +12,9 @@ interface Pedido {
   entregadorId?: string;
   entregadorNome?: string;
   entregadorTelefone?: string;
+  estabelecimento_nome?: string | null;
+  valor_pedido?: number | null;
+  valor_entregador?: number | null;
   createdAt: Date;
 }
 
@@ -21,10 +24,36 @@ export default function Estabelecimento() {
   const [cliente, setCliente] = useState('');
   const [endereco, setEndereco] = useState('');
   const [itens, setItens] = useState('');
+  const [nomeEstabelecimento, setNomeEstabelecimento] = useState('');
+  const [valorPedido, setValorPedido] = useState('');
+  const [valorEntregador, setValorEntregador] = useState('');
+  const [valorPedidoFormatado, setValorPedidoFormatado] = useState('');
+  const [valorEntregadorFormatado, setValorEntregadorFormatado] = useState('');
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(false);
   const [filtroAtivo, setFiltroAtivo] = useState<FiltroPedidos>('todos');
   const [statusConexao, setStatusConexao] = useState<'online' | 'offline'>('online');
+
+  // Formatar valor em moeda enquanto digita
+  const handleValorPedidoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let valor = e.target.value.replace(/\D/g, '');
+    valor = (Number(valor) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+    setValorPedidoFormatado(`R$ ${valor}`);
+    setValorPedido(valor.replace(',', '.'));
+  };
+
+  const handleValorEntregadorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let valor = e.target.value.replace(/\D/g, '');
+    valor = (Number(valor) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+    setValorEntregadorFormatado(`R$ ${valor}`);
+    setValorEntregador(valor.replace(',', '.'));
+  };
+
+  // Salvar nome do estabelecimento no localStorage
+  const handleSalvarNomeEstabelecimento = (nome: string) => {
+    setNomeEstabelecimento(nome);
+    localStorage.setItem('nome_estabelecimento', nome);
+  };
 
   // Carregar pedidos ao iniciar
   useEffect(() => {
@@ -84,9 +113,23 @@ export default function Estabelecimento() {
 
     try {
       console.log('📝 Criando pedido no Supabase...');
-      console.log('📦 Dados do pedido:', { cliente, endereco, itens: itens.split('\n').filter(item => item.trim()) });
+      console.log('📦 Dados do pedido:', {
+        cliente,
+        endereco,
+        itens: itens.split('\n').filter(item => item.trim()),
+        estabelecimento: nomeEstabelecimento,
+        valor_pedido: valorPedido ? parseFloat(valorPedido) : null,
+        valor_entregador: valorEntregador ? parseFloat(valorEntregador) : null
+      });
 
-      const resultado = await api.criarPedido(cliente, endereco, itens.split('\n').filter(item => item.trim()));
+      const resultado = await api.criarPedido(
+        cliente,
+        endereco,
+        itens.split('\n').filter(item => item.trim()),
+        nomeEstabelecimento,
+        valorPedido ? parseFloat(valorPedido) : null,
+        valorEntregador ? parseFloat(valorEntregador) : null
+      );
 
       if (resultado.error) {
         console.error('❌ Erro ao criar pedido:', resultado.error);
@@ -99,6 +142,11 @@ export default function Estabelecimento() {
       setCliente('');
       setEndereco('');
       setItens('');
+      setNomeEstabelecimento('');
+      setValorPedido('');
+      setValorEntregador('');
+      setValorPedidoFormatado('');
+      setValorEntregadorFormatado('');
       carregarPedidos();
     } catch (error) {
       console.error('❌ Erro ao criar pedido:', error);
@@ -128,6 +176,11 @@ export default function Estabelecimento() {
     return colors[status] || 'bg-gray-100 text-gray-800';
   };
 
+  const formatarValor = (valor: number | null | undefined) => {
+    if (!valor) return 'R$ 0,00';
+    return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  };
+
   return (
     <>
       <Head>
@@ -142,15 +195,20 @@ export default function Estabelecimento() {
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-xl font-bold">🏪 Painel do Estabelecimento</h1>
-              <p className="text-sm text-blue-100">Crie e gerencie pedidos</p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <span className={`w-3 h-3 rounded-full ${
                 statusConexao === 'online' ? 'bg-green-400' : 'bg-red-400'
               }`}></span>
               <span className="text-xs">
-                {statusConexao === 'online' ? '✅ Online - Supabase' : '❌ Offline'}
+                {statusConexao === 'online' ? '✅ Online' : '❌ Offline'}
               </span>
+              <button
+                onClick={() => window.location.href = '/'}
+                className="bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 flex items-center gap-2 text-sm"
+              >
+                🚪 Sair
+              </button>
             </div>
           </div>
         </header>
@@ -164,6 +222,19 @@ export default function Estabelecimento() {
             </h2>
 
             <form onSubmit={handleCriarPedido} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Nome do Estabelecimento
+                </label>
+                <input
+                  type="text"
+                  value={nomeEstabelecimento}
+                  onChange={(e) => handleSalvarNomeEstabelecimento(e.target.value)}
+                  placeholder="Ex: Pizzaria do Jaime"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Nome do Cliente
@@ -202,6 +273,34 @@ export default function Estabelecimento() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
                 <p className="text-xs text-gray-500 mt-1">Digite cada item em uma linha separada</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    💰 Valor do Pedido
+                  </label>
+                  <input
+                    type="text"
+                    value={valorPedidoFormatado}
+                    onChange={handleValorPedidoChange}
+                    placeholder="R$ 0,00"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    🛵 Valor do Entregador
+                  </label>
+                  <input
+                    type="text"
+                    value={valorEntregadorFormatado}
+                    onChange={handleValorEntregadorChange}
+                    placeholder="R$ 0,00"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
               </div>
 
               <button
@@ -294,6 +393,9 @@ export default function Estabelecimento() {
                       <div>
                         <h3 className="font-bold text-gray-800">Pedido #{pedido.id.slice(-4)}</h3>
                         <p className="text-sm text-gray-600">{pedido.cliente}</p>
+                        {pedido.estabelecimento_nome && (
+                          <p className="text-xs text-gray-500">🏪 {pedido.estabelecimento_nome}</p>
+                        )}
                       </div>
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(pedido.status)}`}>
                         {getStatusLabel(pedido.status)}
@@ -314,6 +416,17 @@ export default function Estabelecimento() {
                           <li key={index}>{item}</li>
                         ))}
                       </ul>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 mb-2">
+                      <div className="bg-green-50 rounded p-2 border border-green-100">
+                        <p className="text-xs font-medium text-green-700 mb-1">💰 Valor do Pedido:</p>
+                        <p className="text-sm text-green-900 font-bold">{formatarValor(pedido.valor_pedido)}</p>
+                      </div>
+                      <div className="bg-purple-50 rounded p-2 border border-purple-100">
+                        <p className="text-xs font-medium text-purple-700 mb-1">🛵 Valor do Entregador:</p>
+                        <p className="text-sm text-purple-900 font-bold">{formatarValor(pedido.valor_entregador)}</p>
+                      </div>
                     </div>
 
                     {pedido.entregadorId && pedido.entregadorNome && (

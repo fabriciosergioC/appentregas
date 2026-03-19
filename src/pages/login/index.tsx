@@ -112,7 +112,7 @@ export default function Login() {
                 <span className={`text-xs font-medium ${
                   statusSupabase === 'online' ? 'text-green-600' : 'text-red-600'
                 }`}>
-                  {statusSupabase === 'online' ? '✅ Supabase Online' : '❌ Supabase Offline'}
+                  {statusSupabase === 'online' ? '✅ Online' : '❌ Offline'}
                 </span>
               </div>
             </div>
@@ -185,6 +185,14 @@ export default function Login() {
                   Entrar
                 </>
               )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => router.push('/')}
+              className={`w-full font-bold py-4 px-4 rounded-xl shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white`}
+            >
+              ← Voltar
             </button>
           </form>
 
