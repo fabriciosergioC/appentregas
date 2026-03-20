@@ -16,9 +16,8 @@ const nextConfig = {
       },
     ],
   },
-  transpilePackages: ['leaflet', 'react-leaflet'],
-  // Usar server-side rendering ao invés de exportação estática
-  output: undefined,
+  // Configuração para Netlify
+  output: 'standalone',
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -26,15 +25,6 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   reactStrictMode: true,
-  webpack: (config, { isServer }) => {
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-      };
-    }
-    return config;
-  },
 };
 
 export default nextConfig;
