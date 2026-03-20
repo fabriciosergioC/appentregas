@@ -1,90 +1,42 @@
 /**
- * Configuração do Socket.IO
- * 
- * Funciona em conjunto com Supabase Realtime
- * Socket.IO: eventos customizados e baixa latência
- * Supabase Realtime: sincronização com banco de dados
+ * Supabase Realtime - Substituindo Socket.IO
+ *
+ * Este arquivo mantém compatibilidade com o código existente
+ * mas usa apenas Supabase Realtime para comunicação em tempo real
+ * Documentação: https://supabase.com/docs/guides/realtime
  */
 
-import { io, Socket } from 'socket.io-client';
+// =============================================
+// PLACEHOLDERS PARA COMPATIBILIDADE
+// =============================================
+// Estas funções existem apenas para compatibilidade com código legado
+// O realtime real é feito via Supabase (ver src/services/realtime.ts)
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 
-                   process.env.NEXT_PUBLIC_API_URL || 
-                   'http://localhost:3001';
-
-let socket: Socket | null = null;
+let conectado = false;
 
 export const conectarSocket = () => {
-  if (socket) return socket;
-
-  socket = io(SOCKET_URL, {
-    transports: ['websocket', 'polling'],
-    reconnection: true,
-    reconnectionDelay: 1000,
-    reconnectionDelayMax: 5000,
-    reconnectionAttempts: Infinity,
-    timeout: 20000,
-    autoConnect: true,
-  });
-
-  socket.on('connect', () => {
-    console.log('✅ Socket.IO conectado:', socket?.id);
-  });
-
-  socket.on('disconnect', () => {
-    console.log('❌ Socket.IO desconectado');
-  });
-
-  socket.on('connect_error', (error) => {
-    console.error('Erro Socket.IO:', error.message);
-  });
-
-  socket.on('reconnect', (attemptNumber) => {
-    console.log(`🔄 Socket.IO reconectado após ${attemptNumber} tentativas`);
-  });
-
-  return socket;
+  console.log('📡 [Supabase Realtime] Socket.IO removido - usando Supabase Realtime');
+  conectado = true;
+  return null;
 };
 
-export const aguardarConexao = (): Promise<Socket> => {
-  return new Promise((resolve, reject) => {
-    if (!socket) {
-      socket = conectarSocket();
-    }
-
-    if (socket.connected) {
-      resolve(socket);
-      return;
-    }
-
-    socket.once('connect', () => {
-      resolve(socket!);
-    });
-
-    socket.once('connect_error', (error) => {
-      reject(error);
-    });
-
-    // Timeout de 10 segundos
-    setTimeout(() => {
-      reject(new Error('Timeout ao conectar socket'));
-    }, 10000);
-  });
+export const aguardarConexao = (): Promise<null> => {
+  return Promise.resolve(null);
 };
 
 export const desconectarSocket = () => {
-  if (socket) {
-    socket.disconnect();
-    socket = null;
-    console.log('🔌 Socket.IO desconectado manualmente');
-  }
+  conectado = false;
+  console.log('🔌 [Supabase Realtime] Desconectado');
 };
 
-export const getSocket = () => socket;
+export const getSocket = () => null;
 
 // =============================================
-// EVENTOS DO SERVIDOR (Socket.IO)
+// EVENTOS (para compatibilidade com código antigo)
 // =============================================
+// Estes eventos não são mais usados - o Supabase Realtime detecta
+// mudanças automaticamente via postgres_changes
+
 export const eventosServidor = {
   NOVO_PEDIDO: 'novo-pedido',
   PEDIDO_ACEITO: 'pedido-aceito',
@@ -93,9 +45,6 @@ export const eventosServidor = {
   PEDIDO_INICIADO: 'pedido-iniciado',
 };
 
-// =============================================
-// EVENTOS DO CLIENTE
-// =============================================
 export const eventosCliente = {
   ENTRAR_SALA_ENTREGADOR: 'entrar-sala-entregador',
   ENVIAR_LOCALIZACAO: 'localizacao',
@@ -106,46 +55,25 @@ export const eventosCliente = {
 };
 
 // =============================================
-// HELPERS PARA SALAS
+// HELPERS PARA COMPATIBILIDADE
 // =============================================
 
 export const entrarSalaEntregador = (entregadorId: string) => {
-  if (!socket) return;
-  socket.emit(eventosCliente.ENTRAR_SALA_ENTREGADOR, entregadorId);
-  console.log(`📍 Entregador ${entregadorId} entrou na sala`);
+  console.log(`📍 [Supabase Realtime] Entregador ${entregadorId} registrado (sem Socket.IO)`);
 };
 
-export const sairSalaEntregador = (entregadorId: string) => {
-  if (!socket) return;
-  socket.emit('sair-sala-entregador', entregadorId);
+export const sairSalaEntregador = () => {
+  // No-op
 };
 
 // =============================================
-// LISTENERS PRÉ-CONFIGURADOS
+// LISTENERS PLACEHOLDER
 // =============================================
+// Use src/services/realtime.ts para listeners reais
 
 export const criarListeners = {
-  novoPedido: (callback: (pedido: any) => void) => {
-    if (!socket) return () => {};
-    socket.on(eventosServidor.NOVO_PEDIDO, callback);
-    return () => socket?.off(eventosServidor.NOVO_PEDIDO, callback);
-  },
-
-  pedidoAceito: (callback: (pedido: any) => void) => {
-    if (!socket) return () => {};
-    socket.on(eventosServidor.PEDIDO_ACEITO, callback);
-    return () => socket?.off(eventosServidor.PEDIDO_ACEITO, callback);
-  },
-
-  novaLocalizacao: (callback: (data: any) => void) => {
-    if (!socket) return () => {};
-    socket.on(eventosServidor.NOVA_LOCALIZACAO, callback);
-    return () => socket?.off(eventosServidor.NOVA_LOCALIZACAO, callback);
-  },
-
-  pedidoFinalizado: (callback: (pedido: any) => void) => {
-    if (!socket) return () => {};
-    socket.on(eventosServidor.PEDIDO_FINALIZADO, callback);
-    return () => socket?.off(eventosServidor.PEDIDO_FINALIZADO, callback);
-  },
+  novoPedido: () => () => {},
+  pedidoAceito: () => () => {},
+  novaLocalizacao: () => () => {},
+  pedidoFinalizado: () => () => {},
 };

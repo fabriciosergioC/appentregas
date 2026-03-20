@@ -1,5 +1,4 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { getSocket, eventosCliente, conectarSocket } from '@/services/socket';
 import { api } from '@/services/api';
 
 export interface Localizacao {
@@ -44,17 +43,7 @@ export function useGPS(entregadorId?: string) {
   }, []);
 
   const enviarLocalizacao = useCallback((lat: number, lng: number) => {
-    const socket = getSocket();
-    if (socket && entregadorId) {
-      socket.emit(eventosCliente.ENVIAR_LOCALIZACAO, {
-        entregadorId,
-        lat,
-        lng,
-        timestamp: Date.now(),
-      });
-    }
-
-    // Também atualiza via API (backup)
+    // Atualiza localização via Supabase (isso dispara o realtime para outros clientes)
     if (entregadorId) {
       api.atualizarLocalizacao(entregadorId, lat, lng).catch(console.error);
     }
@@ -96,13 +85,6 @@ export function useGPS(entregadorId?: string) {
     if (!temPermissao) {
       setErro('❌ Permissão de localização negada. Vá nas configurações do navegador e permita o acesso à localização.');
       return false;
-    }
-
-    // Conectar socket se não estiver conectado
-    const socket = getSocket();
-    if (!socket) {
-      console.log('🔌 Conectando socket antes de iniciar GPS...');
-      conectarSocket();
     }
 
     setAtivo(true);
