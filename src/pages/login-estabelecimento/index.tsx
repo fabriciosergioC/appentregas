@@ -61,35 +61,46 @@ export default function LoginEstabelecimento() {
     try {
       console.log('📝 Tentando login...', { telefone });
 
-      // Login com Supabase Auth usando telefone formatado como email
-      const { data: authData, error: authErro } = await supabase.auth.signInWithPassword({
-        email: `${telefone}@appentregas.com`,
-        password: senha,
-      });
+      // Buscar estabelecimento na tabela estabelecimentos
+      const emailFormatado = `${telefone}@appentregas.com`;
+      
+      const { data: estabelecimento, error: buscaErro } = await supabase
+        .from('estabelecimentos')
+        .select('*')
+        .eq('email', emailFormatado)
+        .eq('ativo', true)
+        .single();
 
-      if (authErro) {
+      if (buscaErro || !estabelecimento) {
         throw new Error('Telefone ou senha inválidos');
       }
 
-      console.log('✅ Login realizado com sucesso:', authData.user);
+      // Verificar senha (comparar hash)
+      const senhaDecodificada = atob(estabelecimento.senha_hash);
+      
+      if (senhaDecodificada !== senha) {
+        throw new Error('Telefone ou senha inválidos');
+      }
 
-      // Buscar dados adicionais do usuário dos metadados
-      const nomeEstabelecimento = authData.user.user_metadata?.nome_estabelecimento || 'Estabelecimento';
-      const telefoneSalvo = authData.user.user_metadata?.telefone || telefone;
+      console.log('✅ Login realizado com sucesso:', estabelecimento);
 
-      // Salvar dados do usuário no localStorage
+      // Salvar dados do estabelecimento no localStorage
       localStorage.setItem('estabelecimento_user', JSON.stringify({
-        id: authData.user.id,
-        email: authData.user.email,
-        token: authData.session?.access_token,
-        nome_estabelecimento: nomeEstabelecimento,
-        telefone: telefoneSalvo,
+        id: estabelecimento.id,
+        email: estabelecimento.email,
+        nome_estabelecimento: estabelecimento.nome_estabelecimento,
+        nome_responsavel: estabelecimento.nome_responsavel,
+        telefone: estabelecimento.telefone,
+        cnpj: estabelecimento.cnpj,
       }));
 
       // Salvar nome do estabelecimento separadamente para o painel
-      localStorage.setItem('nome_estabelecimento', nomeEstabelecimento);
+      localStorage.setItem('nome_estabelecimento', estabelecimento.nome_estabelecimento);
 
-      console.log('💾 Dados salvos:', { nomeEstabelecimento, telefone: telefoneSalvo });
+      console.log('💾 Dados salvos:', { 
+        nome_estabelecimento: estabelecimento.nome_estabelecimento,
+        telefone: estabelecimento.telefone 
+      });
 
       // Redirecionar para página do estabelecimento
       router.push('/estabelecimento');
@@ -99,10 +110,8 @@ export default function LoginEstabelecimento() {
       let mensagemErro = 'Erro ao fazer login.';
 
       if (error instanceof Error) {
-        if (error.message.includes('Invalid login credentials') || error.message.includes('Telefone ou senha inválidos')) {
+        if (error.message.includes('Telefone ou senha inválidos')) {
           mensagemErro = 'Telefone ou senha inválidos';
-        } else if (error.message.includes('Email not confirmed')) {
-          mensagemErro = 'Telefone não confirmado. Verifique sua caixa de entrada.';
         } else {
           mensagemErro = `Erro: ${error.message}`;
         }

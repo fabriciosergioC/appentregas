@@ -115,25 +115,34 @@ export default function CadastroEstabelecimento() {
 
       // Criar usuário com Supabase Auth usando telefone como email
       const emailFormatado = `${telefoneNumeros}@appentregas.com`;
-      
-      const { data, error } = await supabase.auth.signUp({
-        email: emailFormatado,
-        password: senha,
-        options: {
-          data: {
-            nome: nome,
-            nome_estabelecimento: nomeEstabelecimento,
-            cnpj: cnpj,
-            telefone: telefoneNumeros,
-          },
-        },
-      });
 
-      if (error) {
-        throw error;
+      // Inserir na tabela estabelecimentos
+      const senhaHash = btoa(senha); // Hash básico (substituir por bcrypt em produção)
+      
+      const { data: estabelecimento, error: insertError } = await supabase
+        .from('estabelecimentos')
+        .insert([
+          {
+            email: emailFormatado,
+            senha_hash: senhaHash,
+            nome_estabelecimento: nomeEstabelecimento,
+            nome_responsavel: nome,
+            telefone: telefoneNumeros,
+            cnpj: cnpj,
+            ativo: true,
+          },
+        ])
+        .select()
+        .single();
+
+      if (insertError) {
+        if (insertError.code === '23505') { // Unique violation
+          throw new Error('Este telefone já está cadastrado');
+        }
+        throw insertError;
       }
 
-      console.log('✅ Conta criada com sucesso:', data.user);
+      console.log('✅ Estabelecimento criado com sucesso:', estabelecimento);
 
       setSucesso('✅ Cadastro realizado com sucesso! Redirecionando...');
 
