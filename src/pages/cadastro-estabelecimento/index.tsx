@@ -57,10 +57,13 @@ export default function CadastroEstabelecimento() {
     try {
       console.log('📝 Criando conta...', { email, nomeEstabelecimento });
 
+      // Gerar código de verificação de 6 dígitos
+      const codigoVerificacao = Math.floor(100000 + Math.random() * 900000).toString();
+      
       // Hash da senha
       const senhaHash = btoa(senha); // Hash básico (substituir por bcrypt em produção)
       
-      // Inserir na tabela estabelecimentos
+      // Inserir na tabela estabelecimentos (como pendente)
       const { data: estabelecimento, error: insertError } = await supabase
         .from('estabelecimentos')
         .insert([
@@ -71,7 +74,7 @@ export default function CadastroEstabelecimento() {
             nome_responsavel: nome,
             telefone: '',
             cnpj: cnpj,
-            ativo: true, // Já ativo (confirmação simplificada)
+            ativo: false, // Inativo até confirmar código
           },
         ])
         .select()
@@ -85,13 +88,19 @@ export default function CadastroEstabelecimento() {
         throw new Error('Erro ao criar conta. Tente novamente.');
       }
 
-      console.log('✅ Estabelecimento criado com sucesso:', estabelecimento);
+      console.log('✅ Estabelecimento criado com sucesso');
+      console.log('📧 CÓDIGO DE CONFIRMAÇÃO:', codigoVerificacao);
+      console.log('⚠️ Anote este código para confirmar o cadastro!');
 
-      setSucesso('✅ Cadastro realizado com sucesso! Redirecionando...');
+      // Salvar código no localStorage temporariamente
+      localStorage.setItem('codigo_verificacao_' + email.toLowerCase(), codigoVerificacao);
+      localStorage.setItem('email_verificacao', email.toLowerCase());
 
-      // Aguardar 3 segundos e redirecionar para login
+      setSucesso('✅ Cadastro realizado! Anote o código no console (F12)');
+
+      // Aguardar 3 segundos e redirecionar para confirmação
       setTimeout(() => {
-        router.push('/login-estabelecimento');
+        router.push(`/confirmar-cadastro?email=${encodeURIComponent(email)}`);
       }, 3000);
 
     } catch (error) {

@@ -50,6 +50,17 @@ export default function LoginEstabelecimento() {
         .single();
 
       if (buscaErro || !estabelecimento) {
+        // Verificar se o email existe mas não está confirmado
+        const { data: estabelecimentoPendente } = await supabase
+          .from('estabelecimentos')
+          .select('*')
+          .eq('email', email.toLowerCase())
+          .eq('ativo', false)
+          .single();
+
+        if (estabelecimentoPendente) {
+          throw new Error('Email não confirmado. Verifique o código de confirmação.');
+        }
         throw new Error('Email ou senha inválidos');
       }
 

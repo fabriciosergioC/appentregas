@@ -112,26 +112,31 @@ export default function ConfirmarCadastro() {
     }
 
     try {
-      // Buscar código no banco
-      const { data, error } = await supabase
-        .from('codigos_verificacao')
-        .select('*')
-        .eq('email', email.toLowerCase())
-        .eq('codigo', codigoCompleto)
-        .eq('tipo', 'cadastro')
-        .eq('usado', false)
-        .gt('expires_at', new Date().toISOString())
-        .single();
-
-      if (error || !data) {
-        throw new Error('Código inválido ou expirado');
+      // Buscar código salvo no localStorage
+      const codigoSalvo = localStorage.getItem('codigo_verificacao_' + email.toLowerCase());
+      
+      if (!codigoSalvo) {
+        throw new Error('Código não encontrado. Faça o cadastro novamente.');
       }
 
-      // Marcar código como usado
-      await supabase
-        .from('codigos_verificacao')
-        .update({ usado: true })
-        .eq('id', data.id);
+      if (codigoSalvo !== codigoCompleto) {
+        throw new Error('Código inválido. Verifique e tente novamente.');
+      }
+
+      // Código correto - ativar estabelecimento
+      const { error: updateError } = await supabase
+        .from('estabelecimentos')
+        .update({ ativo: true })
+        .eq('email', email.toLowerCase());
+
+      if (updateError) {
+        console.error('Erro ao ativar estabelecimento:', updateError);
+        throw new Error('Erro ao confirmar cadastro. Tente novamente.');
+      }
+
+      // Limpar código do localStorage
+      localStorage.removeItem('codigo_verificacao_' + email.toLowerCase());
+      localStorage.removeItem('email_verificacao');
 
       setSucesso('✅ Email confirmado com sucesso! Redirecionando...');
 
@@ -159,34 +164,14 @@ export default function ConfirmarCadastro() {
     try {
       // Gerar novo código
       const novoCodigo = Math.floor(100000 + Math.random() * 900000).toString();
-      const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString(); // 5 minutos
-
-      // Deletar códigos anteriores
-      await supabase
-        .from('codigos_verificacao')
-        .delete()
-        .eq('email', email.toLowerCase())
-        .eq('tipo', 'cadastro');
-
-      // Salvar novo código
-      const { error } = await supabase
-        .from('codigos_verificacao')
-        .insert([
-          {
-            email: email.toLowerCase(),
-            codigo: novoCodigo,
-            tipo: 'cadastro',
-            expires_at: expiresAt,
-          },
-        ]);
-
-      if (error) throw error;
-
-      // TODO: Enviar email com o código
-      // Em produção, use um serviço de email (SendGrid, Resend, etc.)
-      console.log('📧 Código de verificação:', novoCodigo);
       
-      setSucesso('✅ Código reenviado! Verifique seu email.');
+      // Salvar novo código no localStorage
+      localStorage.setItem('codigo_verificacao_' + email.toLowerCase(), novoCodigo);
+      
+      // Mostrar código no console
+      console.log('📧 NOVO CÓDIGO DE VERIFICAÇÃO:', novoCodigo);
+      
+      setSucesso('✅ Novo código gerado! Verifique o console (F12)');
       setTempoRestante(300); // Resetar timer
 
     } catch (error) {
