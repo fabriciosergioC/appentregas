@@ -43,7 +43,7 @@ export default function Estabelecimento() {
   const [statusConexao, setStatusConexao] = useState<'online' | 'offline'>('online');
   const [linkCopiado, setLinkCopiado] = useState<string | null>(null);
   const [ultimoPedidoCriado, setUltimoPedidoCriado] = useState<string | null>(null);
-  const [usuarioLogado, setUsuarioLogado] = useState<{ id: string; email: string } | null>(null);
+  const [usuarioLogado, setUsuarioLogado] = useState<{ id: string; email: string; nome_estabelecimento?: string } | null>(null);
 
   // Verificar se usuário está logado
   useEffect(() => {
@@ -52,7 +52,14 @@ export default function Estabelecimento() {
       router.push('/login-estabelecimento');
       return;
     }
-    setUsuarioLogado(JSON.parse(user));
+    const userData = JSON.parse(user);
+    setUsuarioLogado(userData);
+    
+    // Carregar nome do estabelecimento
+    const nomeSalvo = localStorage.getItem('nome_estabelecimento') || userData.nome_estabelecimento;
+    if (nomeSalvo) {
+      setNomeEstabelecimento(nomeSalvo);
+    }
   }, []);
 
   // Formatar valor em moeda enquanto digita
@@ -350,7 +357,7 @@ export default function Estabelecimento() {
         <header className="bg-blue-600 text-white p-4 shadow-md">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-xl font-bold">🏪 Painel do Estabelecimento</h1>
+              <h1 className="text-xl font-bold">🏪 {usuarioLogado?.nome_estabelecimento || 'Painel do Estabelecimento'}</h1>
               {usuarioLogado && (
                 <p className="text-xs text-blue-200">📧 {usuarioLogado.email}</p>
               )}

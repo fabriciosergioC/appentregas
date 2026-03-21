@@ -53,12 +53,19 @@ export default function LoginEstabelecimento() {
 
       console.log('✅ Login realizado com sucesso:', data.user);
 
+      // Buscar dados adicionais do usuário
+      const nomeEstabelecimento = data.user.user_metadata?.nome_estabelecimento || 'Estabelecimento';
+
       // Salvar dados do usuário no localStorage
       localStorage.setItem('estabelecimento_user', JSON.stringify({
         id: data.user.id,
         email: data.user.email,
         token: data.session?.access_token,
+        nome_estabelecimento: nomeEstabelecimento,
       }));
+
+      // Salvar nome do estabelecimento separadamente para o painel
+      localStorage.setItem('nome_estabelecimento', nomeEstabelecimento);
 
       // Redirecionar para página do estabelecimento
       router.push('/estabelecimento');
