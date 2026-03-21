@@ -55,7 +55,11 @@ export default function CadastroEstabelecimento() {
 
   // Validar telefone brasileiro
   const validarTelefone = (tel: string) => {
-    return tel.length === 11 && tel.startsWith('9');
+    // Remove todos os caracteres não numéricos
+    const numeros = tel.replace(/\D/g, '');
+    // Valida se tem 10 ou 11 dígitos (com ou sem formatação)
+    return (numeros.length === 10 || numeros.length === 11) && 
+           (numeros.startsWith('9') || numeros.length === 10);
   };
 
   const handleCadastro = async (e: React.FormEvent) => {
@@ -63,6 +67,18 @@ export default function CadastroEstabelecimento() {
     setLoading(true);
     setErro('');
     setSucesso('');
+
+    // Formatar telefone antes de validar
+    let valor = telefoneFormatado.replace(/\D/g, '');
+    if (valor.length > 0) {
+      if (valor.length > 10) {
+        valor = `(${valor.slice(0, 2)}) ${valor.slice(2, 7)}-${valor.slice(7)}`;
+      } else if (valor.length === 10) {
+        valor = `(${valor.slice(0, 2)}) ${valor.slice(2, 6)}-${valor.slice(6)}`;
+      }
+      setTelefoneFormatado(valor);
+      setTelefone(valor.replace(/\D/g, ''));
+    }
 
     // Validações
     if (!nome || !email || !senha || !nomeEstabelecimento || !telefone) {
