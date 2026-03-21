@@ -11,12 +11,31 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export default function LoginEstabelecimento() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
+  const [telefone, setTelefone] = useState('');
   const [senha, setSenha] = useState('');
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState('');
   const [statusSupabase, setStatusSupabase] = useState<'online' | 'offline'>('online');
-  const [enviandoEmail, setEnviandoEmail] = useState(false);
+  const [telefoneFormatado, setTelefoneFormatado] = useState('');
+
+  // Formatar telefone enquanto digita
+  const handleTelefoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let valor = e.target.value.replace(/\D/g, '');
+    if (valor.length > 11) valor = valor.slice(0, 11);
+
+    if (valor.length > 10) {
+      valor = `(${valor.slice(0, 2)}) ${valor.slice(2, 7)}-${valor.slice(7)}`;
+    } else if (valor.length > 6) {
+      valor = `(${valor.slice(0, 2)}) ${valor.slice(2)}-${valor.slice(6)}`;
+    } else if (valor.length > 2) {
+      valor = `(${valor.slice(0, 2)}) ${valor.slice(2)}`;
+    } else if (valor.length > 0) {
+      valor = `(${valor.slice(0, 2)}`;
+    }
+
+    setTelefoneFormatado(valor);
+    setTelefone(valor.replace(/\D/g, ''));
+  };
 
   // Verificar se Supabase está configurado
   useEffect(() => {
@@ -33,42 +52,62 @@ export default function LoginEstabelecimento() {
     setLoading(true);
     setErro('');
 
-    if (!email || !senha) {
-      setErro('Por favor, preencha email e senha');
+    if (!telefone || !senha) {
+      setErro('Por favor, preencha telefone e senha');
       setLoading(false);
       return;
     }
 
     try {
-      console.log('📝 Tentando login...', { email });
+      console.log('📝 Tentando login...', { telefone });
 
-      // Login com Supabase Auth
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password: senha,
-      });
+      // Buscar usuário por telefone no Supabase
+      const { data: usuarios, error: buscaErro } = await supabase
+        .from('entregadores')
+        .select('*')
+        .eq('telefone', telefone)
+        .single();
 
-      if (error) {
-        throw error;
+      if (buscaErro || !usuarios) {
+        // Tenta buscar nos metadados do auth
+        const { data: authData, error: authErro } = await supabase.auth.signInWithPassword({
+          email: `${telefone}@appentregas.com`,
+          password: senha,
+        });
+
+        if (authErro) {
+          throw new Error('Telefone ou senha inválidos');
+        }
+
+        // Login bem sucedido via email formatado
+        const nomeEstabelecimento = authData.user.user_metadata?.nome_estabelecimento || 'Estabelecimento';
+        
+        localStorage.setItem('estabelecimento_user', JSON.stringify({
+          id: authData.user.id,
+          email: authData.user.email,
+          token: authData.session?.access_token,
+          nome_estabelecimento: nomeEstabelecimento,
+          telefone: telefone,
+        }));
+
+        localStorage.setItem('nome_estabelecimento', nomeEstabelecimento);
+        router.push('/estabelecimento');
+        return;
       }
 
-      console.log('✅ Login realizado com sucesso:', data.user);
-
-      // Buscar dados adicionais do usuário
-      const nomeEstabelecimento = data.user.user_metadata?.nome_estabelecimento || 'Estabelecimento';
-      const telefone = data.user.user_metadata?.telefone || '';
+      console.log('✅ Login realizado com sucesso:', usuarios);
 
       // Salvar dados do usuário no localStorage
       localStorage.setItem('estabelecimento_user', JSON.stringify({
-        id: data.user.id,
-        email: data.user.email,
-        token: data.session?.access_token,
-        nome_estabelecimento: nomeEstabelecimento,
-        telefone: telefone,
+        id: usuarios.id,
+        email: `${telefone}@appentregas.com`,
+        token: 'local-token',
+        nome_estabelecimento: usuarios.nome || 'Estabelecimento',
+        telefone: usuarios.telefone,
       }));
 
       // Salvar nome do estabelecimento separadamente para o painel
-      localStorage.setItem('nome_estabelecimento', nomeEstabelecimento);
+      localStorage.setItem('nome_estabelecimento', usuarios.nome || 'Estabelecimento');
 
       // Redirecionar para página do estabelecimento
       router.push('/estabelecimento');
@@ -78,12 +117,10 @@ export default function LoginEstabelecimento() {
       let mensagemErro = 'Erro ao fazer login.';
 
       if (error instanceof Error) {
-        if (error.message.includes('Invalid login credentials')) {
-          mensagemErro = 'Email ou senha inválidos';
+        if (error.message.includes('Invalid login credentials') || error.message.includes('Telefone ou senha inválidos')) {
+          mensagemErro = 'Telefone ou senha inválidos';
         } else if (error.message.includes('Email not confirmed')) {
-          mensagemErro = 'Email não confirmado. Verifique sua caixa de entrada ou clique em "Reenviar Email" abaixo.';
-        } else if (error.message.includes('Invalid email')) {
-          mensagemErro = 'Email inválido';
+          mensagemErro = 'Telefone não confirmado. Verifique sua caixa de entrada.';
         } else {
           mensagemErro = `Erro: ${error.message}`;
         }
@@ -92,40 +129,6 @@ export default function LoginEstabelecimento() {
       setErro(mensagemErro);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleReenviarEmail = async () => {
-    if (!email) {
-      setErro('Por favor, digite seu email para reenviar a confirmação');
-      return;
-    }
-
-    setEnviandoEmail(true);
-    setErro('');
-
-    try {
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email: email,
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      alert('✅ Email de confirmação reenviado!\n\nVerifique sua caixa de entrada e clique no link de confirmação.');
-    } catch (error) {
-      console.error('Erro ao reenviar email:', error);
-      let mensagemErro = 'Erro ao reenviar email.';
-      
-      if (error instanceof Error) {
-        mensagemErro = `Erro: ${error.message}`;
-      }
-      
-      setErro(mensagemErro);
-    } finally {
-      setEnviandoEmail(false);
     }
   };
 
@@ -171,18 +174,18 @@ export default function LoginEstabelecimento() {
             )}
 
             <div className="space-y-1">
-              <label className="block text-gray-700 font-semibold text-sm" htmlFor="email">
-                Email
+              <label className="block text-gray-700 font-semibold text-sm" htmlFor="telefone">
+                Telefone / WhatsApp
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">📧</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">📱</span>
                 <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full border-2 border-gray-200 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-gray-50"
-                  placeholder="seu@email.com"
+                  id="telefone"
+                  type="tel"
+                  value={telefoneFormatado}
+                  onChange={handleTelefoneChange}
+                  className="w-full border-2 border-gray-200 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-gray-50"
+                  placeholder="(00) 00000-0000"
                   required
                 />
               </div>
@@ -231,41 +234,6 @@ export default function LoginEstabelecimento() {
               )}
             </button>
 
-            {/* Botão Reenviar Email */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <p className="text-xs text-blue-700 mb-2 text-center font-medium">
-                📧 Não recebeu o email de confirmação?
-              </p>
-              <button
-                type="button"
-                onClick={handleReenviarEmail}
-                disabled={enviandoEmail || !email}
-                className={`w-full text-sm font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 ${
-                  enviandoEmail || !email
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'bg-blue-600 hover:bg-blue-700 text-white'
-                }`}
-              >
-                {enviandoEmail ? (
-                  <>
-                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Enviando...
-                  </>
-                ) : (
-                  <>
-                    <span>📤</span>
-                    Reenviar Email de Confirmação
-                  </>
-                )}
-              </button>
-              <p className="text-xs text-blue-600 mt-2 text-center">
-                Digite seu email acima e clique para reenviar
-              </p>
-            </div>
-
             <div className="text-center">
               <p className="text-gray-600 text-sm">
                 Não tem conta?{' '}
@@ -276,6 +244,9 @@ export default function LoginEstabelecimento() {
                 >
                   Cadastre-se
                 </button>
+              </p>
+              <p className="text-gray-500 text-xs mt-2">
+                💡 Use seu WhatsApp para fazer login
               </p>
             </div>
 
