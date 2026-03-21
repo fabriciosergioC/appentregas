@@ -57,9 +57,11 @@ export default function CadastroEstabelecimento() {
   const validarTelefone = (tel: string) => {
     // Remove todos os caracteres não numéricos
     const numeros = tel.replace(/\D/g, '');
+    console.log('📱 Validando telefone:', tel, '→', numeros, '→ Length:', numeros.length);
     // Valida se tem 10 ou 11 dígitos (com ou sem formatação)
-    return (numeros.length === 10 || numeros.length === 11) && 
-           (numeros.startsWith('9') || numeros.length === 10);
+    const valido = (numeros.length === 10 || numeros.length === 11);
+    console.log('✅ Telefone válido:', valido);
+    return valido;
   };
 
   const handleCadastro = async (e: React.FormEvent) => {
@@ -68,9 +70,15 @@ export default function CadastroEstabelecimento() {
     setErro('');
     setSucesso('');
 
+    console.log('📝 Iniciando cadastro...');
+    console.log('📱 telefoneFormatado:', telefoneFormatado);
+    console.log('📱 telefone:', telefone);
+
     // Formatar telefone antes de validar
     let valor = telefoneFormatado.replace(/\D/g, '');
     let telefoneNumeros = '';
+    
+    console.log('📱 valor (somente numeros):', valor);
     
     if (valor.length > 0) {
       if (valor.length > 10) {
@@ -86,15 +94,19 @@ export default function CadastroEstabelecimento() {
     } else {
       telefoneNumeros = telefone;
     }
+    
+    console.log('📱 telefoneNumeros para validação:', telefoneNumeros);
 
     // Validações
     if (!nome || !email || !senha || !nomeEstabelecimento || !telefoneNumeros) {
+      console.log('❌ Campos vazios');
       setErro('Por favor, preencha todos os campos obrigatórios');
       setLoading(false);
       return;
     }
 
     if (!validarTelefone(telefoneNumeros)) {
+      console.log('❌ Telefone inválido');
       setErro('Por favor, informe um telefone/celular válido (com DDD)');
       setLoading(false);
       return;
