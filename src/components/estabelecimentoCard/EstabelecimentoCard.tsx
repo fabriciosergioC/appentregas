@@ -67,7 +67,14 @@ export default function EstabelecimentoCard({ estabelecimento }: Estabelecimento
           <span className="text-lg">📧</span>
           <span className="truncate">{estabelecimento.email}</span>
         </div>
-        
+
+        {estabelecimento.telefone && (
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <span className="text-lg">📞</span>
+            <span>{estabelecimento.telefone}</span>
+          </div>
+        )}
+
         {estabelecimento.cnpj && (
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <span className="text-lg">📄</span>

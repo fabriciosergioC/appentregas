@@ -17,6 +17,7 @@ export default function CadastroEstabelecimento() {
   const [confirmarSenha, setConfirmarSenha] = useState('');
   const [nomeEstabelecimento, setNomeEstabelecimento] = useState('');
   const [cnpj, setCnpj] = useState('');
+  const [telefone, setTelefone] = useState('');
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState('');
   const [sucesso, setSucesso] = useState('');
@@ -87,7 +88,7 @@ export default function CadastroEstabelecimento() {
             senha_hash: senhaHash,
             nome_estabelecimento: nomeEstabelecimento,
             nome_responsavel: nome,
-            telefone: '',
+            telefone: telefone || '',
             cnpj: cnpj || '',
             ativo: true, // JÁ ATIVO! Sem confirmação necessária
           },
@@ -233,6 +234,24 @@ export default function CadastroEstabelecimento() {
                   onChange={(e) => setCnpj(e.target.value)}
                   className="w-full border-2 border-gray-200 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-gray-50"
                   placeholder="00.000.000/0000-00"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="block text-gray-700 font-semibold text-sm" htmlFor="telefone">
+                Telefone/WhatsApp *
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">📞</span>
+                <input
+                  id="telefone"
+                  type="tel"
+                  value={telefone}
+                  onChange={(e) => setTelefone(e.target.value)}
+                  className="w-full border-2 border-gray-200 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-gray-50"
+                  placeholder="(00) 00000-0000"
+                  required
                 />
               </div>
             </div>
