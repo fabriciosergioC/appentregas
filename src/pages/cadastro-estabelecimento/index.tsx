@@ -25,7 +25,17 @@ export default function CadastroEstabelecimento() {
 
   // Formatar telefone enquanto digita
   const handleTelefoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let valor = e.target.value.replace(/\D/g, '');
+    const valor = e.target.value;
+    setTelefoneFormatado(valor);
+    
+    // Extrair apenas números
+    const numeros = valor.replace(/\D/g, '');
+    setTelefone(numeros);
+  };
+
+  // Formatar telefone quando o valor mudar
+  const handleTelefoneBlur = () => {
+    let valor = telefoneFormatado.replace(/\D/g, '');
     
     if (valor.length > 11) valor = valor.slice(0, 11);
 
@@ -36,7 +46,7 @@ export default function CadastroEstabelecimento() {
     } else if (valor.length > 2) {
       valor = `(${valor.slice(0, 2)}) ${valor.slice(2)}`;
     } else if (valor.length > 0) {
-      valor = `(${valor.slice(0, 2)}`;
+      valor = `(${valor}`;
     }
 
     setTelefoneFormatado(valor);
@@ -245,6 +255,7 @@ export default function CadastroEstabelecimento() {
                   type="tel"
                   value={telefoneFormatado}
                   onChange={handleTelefoneChange}
+                  onBlur={handleTelefoneBlur}
                   className="w-full border-2 border-gray-200 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-gray-50"
                   placeholder="(00) 00000-0000"
                   required
