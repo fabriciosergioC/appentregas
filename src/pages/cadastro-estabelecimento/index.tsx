@@ -57,14 +57,10 @@ export default function CadastroEstabelecimento() {
     try {
       console.log('📝 Criando conta...', { email, nomeEstabelecimento });
 
-      // Gerar código de verificação de 6 dígitos
-      const codigoVerificacao = Math.floor(100000 + Math.random() * 900000).toString();
-      const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString(); // 5 minutos
-
       // Hash da senha
       const senhaHash = btoa(senha); // Hash básico (substituir por bcrypt em produção)
       
-      // Inserir na tabela estabelecimentos (como pendente)
+      // Inserir na tabela estabelecimentos
       const { data: estabelecimento, error: insertError } = await supabase
         .from('estabelecimentos')
         .insert([
@@ -75,7 +71,7 @@ export default function CadastroEstabelecimento() {
             nome_responsavel: nome,
             telefone: '',
             cnpj: cnpj,
-            ativo: false, // Inativo até confirmar email
+            ativo: true, // Já ativo (confirmação simplificada)
           },
         ])
         .select()
@@ -85,47 +81,17 @@ export default function CadastroEstabelecimento() {
         if (insertError.code === '23505') { // Unique violation
           throw new Error('Este email já está cadastrado');
         }
-        throw insertError;
+        console.error('Erro ao criar estabelecimento:', insertError);
+        throw new Error('Erro ao criar conta. Tente novamente.');
       }
 
-      // Salvar código de verificação
-      const { error: codigoError } = await supabase
-        .from('codigos_verificacao')
-        .insert([
-          {
-            email: email.toLowerCase(),
-            codigo: codigoVerificacao,
-            tipo: 'cadastro',
-            expires_at: expiresAt,
-          },
-        ]);
+      console.log('✅ Estabelecimento criado com sucesso:', estabelecimento);
 
-      if (codigoError) {
-        // Se falhar ao salvar código, deletar estabelecimento
-        await supabase.from('estabelecimentos').delete().eq('id', estabelecimento.id);
-        throw codigoError;
-      }
+      setSucesso('✅ Cadastro realizado com sucesso! Redirecionando...');
 
-      console.log('✅ Estabelecimento e código criados com sucesso');
-      console.log('📧 Código de verificação:', codigoVerificacao);
-
-      // TODO: Enviar email com o código
-      // Em produção, use um serviço de email (SendGrid, Resend, AWS SES, etc.)
-      // Exemplo:
-      // await fetch('/api/enviar-email', {
-      //   method: 'POST',
-      //   body: JSON.stringify({
-      //     email,
-      //     codigo: codigoVerificacao,
-      //     nome: nomeEstabelecimento,
-      //   }),
-      // });
-
-      setSucesso('✅ Cadastro realizado! Verifique seu email para confirmar.');
-
-      // Aguardar 3 segundos e redirecionar para confirmação
+      // Aguardar 3 segundos e redirecionar para login
       setTimeout(() => {
-        router.push(`/confirmar-cadastro?email=${encodeURIComponent(email)}`);
+        router.push('/login-estabelecimento');
       }, 3000);
 
     } catch (error) {
