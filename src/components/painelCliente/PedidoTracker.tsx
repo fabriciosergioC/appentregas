@@ -16,6 +16,7 @@ export default function PedidoTracker({ pedidoId }: PedidoTrackerProps) {
   const [erro, setErro] = useState<string | null>(null);
   const [ultimaAtualizacao, setUltimaAtualizacao] = useState<Date>(new Date());
   const [ultimaAtualizacaoRealtime, setUltimaAtualizacaoRealtime] = useState<number>(0);
+  const [mostrarAvisoChegada, setMostrarAvisoChegada] = useState(false);
 
   const { link, copiado, compartilhar } = useCompartilhamentoPedido(pedidoId);
 
@@ -26,25 +27,31 @@ export default function PedidoTracker({ pedidoId }: PedidoTrackerProps) {
   const statusInfo = {
     pendente: {
       label: '⏳ Aguardando Entregador',
-      descricao: 'Seu pedido está aguardando um entregador aceitar',
+      descricao: 'Seu pedido foi recebido e estamos procurando um entregador próximo.',
       cor: 'yellow',
-      progresso: 25,
+      progresso: 15,
     },
     aceito: {
       label: '✅ Pedido Aceito',
-      descricao: 'Um entregador aceitou seu pedido e está indo ao estabelecimento',
+      descricao: 'Um entregador aceitou seu pedido e está indo retirar no estabelecimento.',
       cor: 'blue',
-      progresso: 50,
+      progresso: 35,
     },
     em_transito: {
       label: '🚗 Pedido a Caminho',
-      descricao: 'Seu pedido está saindo para entrega',
+      descricao: 'Seu pedido já saiu e está em rota de entrega.',
       cor: 'purple',
-      progresso: 75,
+      progresso: 60,
+    },
+    no_local: {
+      label: '📍 Entregador no Local',
+      descricao: 'O entregador chegou! Por favor, vá encontrá-lo para receber seu pedido.',
+      cor: 'orange',
+      progresso: 85,
     },
     entregue: {
-      label: '📦 Pedido Entregue',
-      descricao: 'Seu pedido foi entregue com sucesso!',
+      label: '✅ Pedido Entregue',
+      descricao: 'Entrega finalizada com sucesso. Bom apetite!',
       cor: 'green',
       progresso: 100,
     },
@@ -96,50 +103,44 @@ export default function PedidoTracker({ pedidoId }: PedidoTrackerProps) {
 
     const cancelarInscricao = api.assinarPedidosTempoReal(
       (novoPedido) => {
-        const agora = Date.now();
-        // Throttle: só atualiza se passou 10 segundos desde a última atualização
-        if (agora - ultimaAtualizacaoRealtime >= INTERVALO_ATUALIZACAO) {
-          if (novoPedido.id === pedidoId) {
-            setPedido(novoPedido);
-            setUltimaAtualizacao(new Date());
-            setUltimaAtualizacaoRealtime(agora);
-          }
+        if (novoPedido.id === pedidoId) {
+          setPedido(novoPedido);
+          setUltimaAtualizacao(new Date());
         }
       },
       (pedidoAtualizado) => {
-        const agora = Date.now();
-        // Throttle: só atualiza se passou 10 segundos desde a última atualização
-        if (agora - ultimaAtualizacaoRealtime >= INTERVALO_ATUALIZACAO) {
-          if (pedidoAtualizado.id === pedidoId) {
-            setPedido(pedidoAtualizado);
-            setUltimaAtualizacao(new Date());
-            setUltimaAtualizacaoRealtime(agora);
-
-            // Atualizar entregador se mudou
-            if (pedidoAtualizado.entregador_id && pedidoAtualizado.entregador_id !== pedido?.entregador_id) {
-              api.buscarEntregador(pedidoAtualizado.entregador_id).then(({ data }) => {
-                setEntregador(data || null);
-                setUltimaAtualizacao(new Date());
-                setUltimaAtualizacaoRealtime(Date.now());
-              });
+        if (pedidoAtualizado.id === pedidoId) {
+          setPedido((prevPedido) => {
+            // Se o status mudou para no_local, dispara as notificações
+            if (prevPedido && prevPedido.status !== 'no_local' && pedidoAtualizado.status === 'no_local') {
+              if (window.navigator && window.navigator.vibrate) {
+                window.navigator.vibrate([200, 100, 200, 100, 500]);
+              }
+              setMostrarAvisoChegada(true);
+              // Fallback alert
+              setTimeout(() => alert('📍 O entregador acabou de chegar no seu endereço! Por favor, vá encontrá-lo.'), 300);
             }
+            return pedidoAtualizado;
+          });
+          
+          setUltimaAtualizacao(new Date());
+
+          // Atualizar entregador se mudou
+          if (pedidoAtualizado.entregador_id && pedidoAtualizado.entregador_id !== pedido?.entregador_id) {
+            api.buscarEntregador(pedidoAtualizado.entregador_id).then(({ data }) => {
+              setEntregador(data || null);
+            });
           }
         }
       }
     );
 
-    // Assinar localização do entregador em tempo real (com throttle de 15 segundos)
+    // Assinar localização do entregador em tempo real (com throttle de 5 segundos)
     let cancelarLocalizacao: (() => void) | undefined;
     if (entregador?.id) {
       cancelarLocalizacao = api.assinarLocalizacaoTempoReal((entregadorAtualizado) => {
-        const agora = Date.now();
-        // Throttle: só atualiza se passou 10 segundos desde a última atualização
-        if (agora - ultimaAtualizacaoRealtime >= INTERVALO_ATUALIZACAO) {
-          if (entregadorAtualizado.id === entregador.id) {
-            setEntregador(entregadorAtualizado);
-            setUltimaAtualizacao(new Date());
-            setUltimaAtualizacaoRealtime(agora);
-          }
+        if (entregadorAtualizado.id === entregador.id) {
+          setEntregador(entregadorAtualizado);
         }
       });
     }
@@ -148,7 +149,7 @@ export default function PedidoTracker({ pedidoId }: PedidoTrackerProps) {
       cancelarInscricao();
       cancelarLocalizacao?.();
     };
-  }, [pedidoId, entregador?.id, pedido?.entregador_id, ultimaAtualizacaoRealtime]);
+  }, [pedidoId, entregador?.id, pedido?.entregador_id]);
 
   const formatarValor = (valor: number | null | undefined) => {
     if (!valor) return 'R$ 0,00';
@@ -160,8 +161,9 @@ export default function PedidoTracker({ pedidoId }: PedidoTrackerProps) {
     yellow: 'bg-yellow-500',
     blue: 'bg-blue-500',
     purple: 'bg-purple-500',
+    orange: 'bg-orange-500',
     green: 'bg-green-500',
-  }[infoAtual.cor];
+  }[infoAtual.cor as string] || 'bg-gray-500';
 
   if (carregando) {
     return (
@@ -195,6 +197,25 @@ export default function PedidoTracker({ pedidoId }: PedidoTrackerProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 p-4">
       <div className="max-w-4xl mx-auto space-y-4">
+        {/* Alerta de Chegada - Overlay / Banner */}
+        {mostrarAvisoChegada && (
+          <div className="fixed top-4 left-4 right-4 z-[9999] animate-bounce">
+            <div className="bg-orange-600 text-white p-5 rounded-2xl shadow-2xl border-4 border-white flex flex-col items-center text-center">
+              <span className="text-5xl mb-3">📍</span>
+              <h3 className="text-xl font-black mb-1">O ENTREGADOR CHEGOU!</h3>
+              <p className="font-medium text-orange-50 mb-4 text-sm">
+                Seu pedido está no local. Vá até a porta ou portaria para receber seu pacote.
+              </p>
+              <button
+                onClick={() => setMostrarAvisoChegada(false)}
+                className="bg-white text-orange-600 font-bold py-2 px-8 rounded-full shadow-lg hover:bg-orange-50 transition-colors"
+              >
+                ESTOU INDO!
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Cabeçalho */}
         <div className="bg-white rounded-xl shadow-lg p-6">
           <div className="flex items-center justify-between mb-4">
@@ -226,6 +247,8 @@ export default function PedidoTracker({ pedidoId }: PedidoTrackerProps) {
                     ? 'bg-blue-100 text-blue-800'
                     : infoAtual.cor === 'purple'
                     ? 'bg-purple-100 text-purple-800'
+                    : infoAtual.cor === 'orange'
+                    ? 'bg-orange-100 text-orange-800'
                     : 'bg-green-100 text-green-800'
                 }`}
               >
@@ -236,11 +259,12 @@ export default function PedidoTracker({ pedidoId }: PedidoTrackerProps) {
 
           {/* Barra de Progresso */}
           <div className="mb-4">
-            <div className="flex justify-between text-sm text-gray-600 mb-2">
-              <span>Aguardando</span>
-              <span>Aceito</span>
-              <span>Em Trânsito</span>
-              <span>Entregue</span>
+            <div className="flex justify-between text-[10px] sm:text-xs font-bold text-gray-500 mb-2 px-1">
+              <span className={pedido?.status === 'pendente' ? 'text-yellow-600' : ''}>Aguardando</span>
+              <span className={pedido?.status === 'aceito' ? 'text-blue-600' : ''}>Aceito</span>
+              <span className={pedido?.status === 'em_transito' ? 'text-purple-600' : ''}>A Caminho</span>
+              <span className={pedido?.status === 'no_local' ? 'text-orange-600' : ''}>No Local</span>
+              <span className={pedido?.status === 'entregue' ? 'text-green-600' : ''}>Entregue</span>
             </div>
             <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
               <div
@@ -396,10 +420,10 @@ export default function PedidoTracker({ pedidoId }: PedidoTrackerProps) {
                   </div>
                 </div>
 
-                {pedido.status === 'em_transito' || pedido.status === 'entregue' ? (
+                {pedido.status === 'em_transito' || pedido.status === 'no_local' || pedido.status === 'entregue' ? (
                   <div className="flex items-center gap-4">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      pedido.status === 'em_transito' || pedido.status === 'entregue' 
+                      pedido.status === 'em_transito' || pedido.status === 'no_local' || pedido.status === 'entregue' 
                         ? 'bg-purple-500' 
                         : 'bg-gray-300'
                     }`}>
@@ -407,11 +431,35 @@ export default function PedidoTracker({ pedidoId }: PedidoTrackerProps) {
                     </div>
                     <div className="flex-1">
                       <p className={`font-medium ${
-                        pedido.status === 'em_transito' || pedido.status === 'entregue'
+                        pedido.status === 'em_transito' || pedido.status === 'no_local' || pedido.status === 'entregue'
                           ? 'text-purple-600' 
                           : 'text-gray-400'
                       }`}>
                         Pedido saiu para entrega
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {new Date(pedido.updated_at).toLocaleTimeString('pt-BR')}
+                      </p>
+                    </div>
+                  </div>
+                ) : null}
+
+                {pedido.status === 'no_local' || pedido.status === 'entregue' ? (
+                  <div className="flex items-center gap-4">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                      pedido.status === 'no_local' || pedido.status === 'entregue' 
+                        ? 'bg-orange-500' 
+                        : 'bg-gray-300'
+                    }`}>
+                      <span className="text-white">📍</span>
+                    </div>
+                    <div className="flex-1">
+                      <p className={`font-medium ${
+                        pedido.status === 'no_local' || pedido.status === 'entregue'
+                          ? 'text-orange-600' 
+                          : 'text-gray-400'
+                      }`}>
+                        Entregador chegou no local
                       </p>
                       <p className="text-sm text-gray-500">
                         {new Date(pedido.updated_at).toLocaleTimeString('pt-BR')}

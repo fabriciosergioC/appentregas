@@ -43,14 +43,34 @@ export default function Mapa() {
     }
   };
 
+  const handleChegueiLocal = async () => {
+    if (!pedidoAtivo) return;
+
+    try {
+      const { error } = await api.notificarChegada(pedidoAtivo.id);
+      if (error) {
+        console.error('Erro detalhado do Supabase:', error);
+        alert('Erro ao notificar chegada: ' + error.message);
+        return;
+      }
+      alert('📍 Cliente notificado que você chegou!');
+      // Atualizar localmente
+      setPedidoAtivo({ ...pedidoAtivo, status: 'no_local' });
+    } catch (error) {
+      console.error('Erro ao notificar chegada:', error);
+      alert('Erro ao notificar chegada');
+    }
+  };
+
   const handleFinalizarEntrega = async () => {
     if (!pedidoAtivo) return;
 
     try {
       await api.finalizarPedido(pedidoAtivo.id);
       
-      const subtotal = ((parseFloat(String(pedidoAtivo.valor_pedido)) || 0) + (parseFloat(String(pedidoAtivo.valor_entregador)) || 0)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-      alert(`✅ Entrega finalizada com sucesso!\n\n💵 Receber do cliente: ${subtotal}`);
+      const subtotal = ((parseFloat(String(pedidoAtivo.valor_pedido).replace(',', '.')) || 0) + (parseFloat(String(pedidoAtivo.valor_entregador).replace(',', '.')) || 0)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      const pag = pedidoAtivo.forma_pagamento ? `\n💳 Forma de Pagamento: ${pedidoAtivo.forma_pagamento}` : '';
+      alert(`✅ Entrega finalizada com sucesso!\n\n💵 Receber do cliente: ${subtotal}${pag}`);
       
       router.push('/pedidos');
     } catch (error) {
@@ -130,9 +150,11 @@ export default function Mapa() {
                     <span className={`px-2 py-1 rounded text-sm font-medium ${
                       pedidoAtivo.status === 'em_transito'
                         ? 'bg-purple-100 text-purple-800'
+                        : pedidoAtivo.status === 'no_local'
+                        ? 'bg-orange-100 text-orange-800'
                         : 'bg-blue-100 text-blue-800'
                     }`}>
-                      {pedidoAtivo.status === 'em_transito' ? '🚗 Em trânsito' : '✅ Aceito'}
+                      {pedidoAtivo.status === 'em_transito' ? '🚗 Em trânsito' : pedidoAtivo.status === 'no_local' ? '📍 No Local' : '✅ Aceito'}
                     </span>
                   </div>
                   <div className="bg-blue-50 rounded p-2 border border-blue-100 mt-3 flex justify-between items-center">
@@ -141,6 +163,13 @@ export default function Mapa() {
                       {((parseFloat(String(pedidoAtivo.valor_pedido).replace(',', '.')) || 0) + (parseFloat(String(pedidoAtivo.valor_entregador).replace(',', '.')) || 0)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                     </p>
                   </div>
+
+                  {pedidoAtivo.forma_pagamento && (
+                    <div className="bg-gray-50 rounded p-2 border border-gray-200 mt-2 flex justify-between items-center">
+                      <p className="text-xs font-medium text-gray-700 flex items-center gap-1">💳 Forma de Pag.</p>
+                      <p className="text-sm text-gray-800 font-bold">{pedidoAtivo.forma_pagamento}</p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Botões de Ação */}
@@ -167,8 +196,17 @@ export default function Mapa() {
 
                   {pedidoAtivo.status === 'em_transito' && (
                     <button
+                      onClick={handleChegueiLocal}
+                      className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-lg font-bold shadow-md transition-all text-sm mb-2"
+                    >
+                      📍 Cheguei no Local
+                    </button>
+                  )}
+
+                  {(pedidoAtivo.status === 'em_transito' || pedidoAtivo.status === 'no_local') && (
+                    <button
                       onClick={handleFinalizarEntrega}
-                      className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-lg font-medium"
+                      className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-medium"
                     >
                       ✅ Finalizar Entrega
                     </button>

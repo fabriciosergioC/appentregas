@@ -8,6 +8,7 @@ interface PedidoCardProps {
   entregador?: { nome: string; telefone: string } | null;
   onAceitar?: () => void;
   onIniciar?: () => void;
+  onCheguei?: () => void;
   onFinalizar?: () => void;
   mostrarAcoes?: boolean;
 }
@@ -17,6 +18,7 @@ export default function PedidoCard({
   entregador,
   onAceitar,
   onIniciar,
+  onCheguei,
   onFinalizar,
   mostrarAcoes = false,
 }: PedidoCardProps) {
@@ -24,6 +26,7 @@ export default function PedidoCard({
     pendente: 'bg-yellow-100 text-yellow-800',
     aceito: 'bg-blue-100 text-blue-800',
     em_transito: 'bg-purple-100 text-purple-800',
+    no_local: 'bg-orange-100 text-orange-800',
     entregue: 'bg-green-100 text-green-800',
   };
 
@@ -31,6 +34,7 @@ export default function PedidoCard({
     pendente: '⏳ Pendente',
     aceito: '✅ Aceito',
     em_transito: '🚗 Em trânsito',
+    no_local: '📍 No Local',
     entregue: '📦 Entregue',
   };
 
@@ -75,6 +79,15 @@ export default function PedidoCard({
             </ul>
           </div>
         </div>
+
+        {pedido.forma_pagamento && (
+          <div className="flex items-start gap-2">
+            <span className="text-gray-500">💳</span>
+            <p className="text-gray-700 text-sm font-bold">
+              Pagamento: <span className="font-normal text-gray-600">{pedido.forma_pagamento}</span>
+            </p>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-2 mt-2">
           <div className="bg-green-50 rounded p-2 border border-green-100">
@@ -184,12 +197,21 @@ export default function PedidoCard({
             </>
           )}
 
-          {pedido.status === 'em_transito' && onFinalizar && (
+          {pedido.status === 'em_transito' && onCheguei && (
+            <button
+              onClick={onCheguei}
+              className="mt-4 w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-colors flex items-center justify-center gap-2"
+            >
+              <span>📍</span> Cheguei no Local
+            </button>
+          )}
+
+          {(pedido.status === 'em_transito' || pedido.status === 'no_local') && onFinalizar && (
             <button
               onClick={onFinalizar}
-              className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+              className="mt-2 w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
             >
-              ✅ Finalizar Entrega
+              <span>✅</span> Finalizar Entrega
             </button>
           )}
         </div>

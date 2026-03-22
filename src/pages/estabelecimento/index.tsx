@@ -14,7 +14,7 @@ interface Pedido {
   cliente: string;
   endereco: string;
   itens: string[] | string;
-  status: 'pendente' | 'aceito' | 'em_transito' | 'entregue';
+  status: 'pendente' | 'aceito' | 'em_transito' | 'no_local' | 'entregue';
   entregador_id?: string | null;
   entregadorId?: string;
   entregadorNome?: string;
@@ -63,6 +63,7 @@ export default function Estabelecimento() {
   const [valorEntregador, setValorEntregador] = useState('');
   const [valorPedidoFormatado, setValorPedidoFormatado] = useState('');
   const [valorEntregadorFormatado, setValorEntregadorFormatado] = useState('');
+  const [formaPagamento, setFormaPagamento] = useState('');
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(false);
   const [filtroAtivo, setFiltroAtivo] = useState<FiltroPedidos>('todos');
@@ -335,7 +336,7 @@ export default function Estabelecimento() {
   const pedidosFiltrados = pedidos.filter((pedido) => {
     if (filtroAtivo === 'todos') return true;
     if (filtroAtivo === 'pendentes') return pedido.status === 'pendente' || pedido.status === 'aceito';
-    if (filtroAtivo === 'em_entrega') return pedido.status === 'em_transito';
+    if (filtroAtivo === 'em_entrega') return pedido.status === 'em_transito' || pedido.status === 'no_local';
     if (filtroAtivo === 'entregues') return pedido.status === 'entregue';
     return true;
   });
@@ -343,7 +344,7 @@ export default function Estabelecimento() {
   const contagemPedidos = {
     todos: pedidos.length,
     pendentes: pedidos.filter(p => p.status === 'pendente' || p.status === 'aceito').length,
-    em_entrega: pedidos.filter(p => p.status === 'em_transito').length,
+    em_entrega: pedidos.filter(p => p.status === 'em_transito' || p.status === 'no_local').length,
     entregues: pedidos.filter(p => p.status === 'entregue').length,
   };
 
@@ -365,8 +366,8 @@ export default function Estabelecimento() {
         itens: itens.split('\n').filter(item => item.trim()),
         estabelecimento: nomeEstabelecimento,
         estabelecimento_endereco: enderecoEstabelecimento,
-        valor_pedido: valorPedido ? parseFloat(valorPedido) : null,
-        valor_entregador: valorEntregador ? parseFloat(valorEntregador) : null
+        valor_pedido: valorPedido ? parseFloat(valorPedido) : 0,
+        valor_entregador: valorEntregador ? parseFloat(valorEntregador) : 0
       });
 
       const resultado = await api.criarPedido(
@@ -374,9 +375,10 @@ export default function Estabelecimento() {
         endereco,
         itens.split('\n').filter(item => item.trim()),
         nomeEstabelecimento,
-        valorPedido ? parseFloat(valorPedido) : null,
-        valorEntregador ? parseFloat(valorEntregador) : null,
-        enderecoEstabelecimento
+        valorPedido ? parseFloat(valorPedido) : 0,
+        valorEntregador ? parseFloat(valorEntregador) : 0,
+        enderecoEstabelecimento,
+        formaPagamento
       );
 
       if (resultado.error) {
@@ -404,6 +406,7 @@ export default function Estabelecimento() {
       setValorEntregador('');
       setValorPedidoFormatado('');
       setValorEntregadorFormatado('');
+      setFormaPagamento('');
       carregarPedidos();
     } catch (error) {
       console.error('❌ Erro ao criar pedido:', error);
@@ -418,6 +421,7 @@ export default function Estabelecimento() {
       pendente: '⏳ Pendente',
       aceito: '✅ Aceito',
       em_transito: '🚗 Em trânsito',
+      no_local: '📍 No Local',
       entregue: '✅ Entregue',
     };
     return labels[status] || status;
@@ -428,6 +432,7 @@ export default function Estabelecimento() {
       pendente: 'bg-yellow-100 text-yellow-800',
       aceito: 'bg-blue-100 text-blue-800',
       em_transito: 'bg-purple-100 text-purple-800',
+      no_local: 'bg-orange-100 text-orange-800',
       entregue: 'bg-green-100 text-green-800',
     };
     return colors[status] || 'bg-gray-100 text-gray-800';
@@ -717,6 +722,25 @@ export default function Estabelecimento() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
+                  💳 Forma de Pagamento
+                </label>
+                <select
+                  value={formaPagamento}
+                  onChange={(e) => setFormaPagamento(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                >
+                  <option value="">Selecione a forma de pagamento (Opcional)</option>
+                  <option value="Dinheiro">Dinheiro</option>
+                  <option value="PIX">PIX</option>
+                  <option value="Cartão de Crédito">Cartão de Crédito</option>
+                  <option value="Cartão de Débito">Cartão de Débito</option>
+                  <option value="Maquininha na Entrega">Maquininha na Entrega</option>
+                  <option value="Pago no App/Site">Já Pago no App/Site</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Itens do Pedido
                 </label>
                 <textarea
@@ -879,9 +903,13 @@ export default function Estabelecimento() {
                     <div className="bg-gray-50 rounded p-2 mb-2">
                       <p className="text-xs font-medium text-gray-700 mb-1">Itens:</p>
                       <ul className="text-sm text-gray-600 list-disc list-inside">
-                        {pedido.itens.map((item, index) => (
-                          <li key={index}>{item}</li>
-                        ))}
+                        {Array.isArray(pedido.itens) ? (
+                          pedido.itens.map((item: string, index: number) => (
+                            <li key={index}>{item}</li>
+                          ))
+                        ) : (
+                          <li>{String(pedido.itens)}</li>
+                        )}
                       </ul>
                     </div>
 

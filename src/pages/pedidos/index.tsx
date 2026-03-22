@@ -256,6 +256,25 @@ export default function Pedidos() {
     }
   };
 
+  const handleChegarLocal = async (id: string) => {
+    try {
+      const { error } = await api.notificarChegada(id);
+      if (error) {
+        console.error('Erro detalhado do Supabase:', error);
+        alert('Erro ao notificar chegada: ' + error.message);
+        return;
+      }
+      alert('📍 Cliente notificado que você chegou!');
+      // Atualizar localmente
+      setMeusPedidos((prev) =>
+        prev.map((p) => (p.id === id ? { ...p, status: 'no_local' } : p))
+      );
+    } catch (error) {
+      console.error('Erro ao notificar chegada:', error);
+      alert('Erro ao notificar chegada');
+    }
+  };
+
   const handleFinalizarEntrega = async (pedido: Pedido) => {
     try {
       await api.finalizarPedido(pedido.id);
@@ -265,7 +284,8 @@ export default function Pedidos() {
       );
       
       const subtotal = ((parseFloat(String(pedido.valor_pedido).replace(',', '.')) || 0) + (parseFloat(String(pedido.valor_entregador).replace(',', '.')) || 0)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-      alert(`✅ Entrega finalizada com sucesso!\n\n💵 Receber do cliente: ${subtotal}`);
+      const pag = pedido.forma_pagamento ? `\n💳 Forma de Pagamento: ${pedido.forma_pagamento}` : '';
+      alert(`✅ Entrega finalizada com sucesso!\n\n💵 Receber do cliente: ${subtotal}${pag}`);
     } catch (error) {
       console.error('Erro ao finalizar entrega:', error);
       alert('Erro ao finalizar entrega');

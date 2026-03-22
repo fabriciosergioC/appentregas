@@ -51,12 +51,6 @@ export default function Home() {
             🏪 Sou Estabelecimento
           </Link>
 
-          <Link
-            href="/painel-cliente"
-            className="inline-block w-full bg-purple-600 text-white font-bold py-4 px-8 rounded-xl shadow-lg hover:bg-purple-700 transition-colors text-lg"
-          >
-            👤 Sou Cliente
-          </Link>
         </div>
 
         {/* Rodapé */}

@@ -64,12 +64,16 @@ export const api = {
     return await pedidosApi.iniciarEntrega(id);
   },
 
+  async notificarChegada(id: string) {
+    return await pedidosApi.notificarChegada(id);
+  },
+
   async finalizarPedido(id: string) {
     return await pedidosApi.finalizarPedido(id);
   },
 
-  async criarPedido(cliente: string, endereco: string, itens: string[], estabelecimentoNome?: string, valorPedido?: number, valorEntregador?: number, estabelecimentoEndereco?: string) {
-    const resultado = await pedidosApi.criarPedido(cliente, endereco, itens, estabelecimentoNome, valorPedido, valorEntregador, estabelecimentoEndereco);
+  async criarPedido(cliente: string, endereco: string, itens: string[], estabelecimentoNome?: string, valorPedido?: number, valorEntregador?: number, estabelecimentoEndereco?: string, formaPagamento?: string) {
+    const resultado = await pedidosApi.criarPedido(cliente, endereco, itens, estabelecimentoNome, valorPedido, valorEntregador, estabelecimentoEndereco, formaPagamento);
 
     // Socket.IO vai detectar automaticamente via Supabase Realtime
     // mas podemos emitir um evento adicional se necessário

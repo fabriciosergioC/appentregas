@@ -22,12 +22,13 @@ export interface Pedido {
   cliente: string;
   endereco: string;
   itens: string[];
-  status: 'pendente' | 'aceito' | 'em_transito' | 'entregue';
+  status: 'pendente' | 'aceito' | 'em_transito' | 'no_local' | 'entregue';
   entregador_id: string | null;
   estabelecimento_nome: string | null;
   estabelecimento_endereco: string | null;
   valor_pedido: number | null;
   valor_entregador: number | null;
+  forma_pagamento?: string | null;
   liberado_pelo_estabelecimento: boolean;
   liberado_em: string | null;
   created_at: string;
@@ -299,6 +300,59 @@ export const pedidosApi = {
     return { data: pedidoAtualizado, error: null };
   },
 
+  // Notificar chegada no local (Entregador -> Cliente)
+  async notificarChegada(pedidoId: string) {
+    // Buscar dados do pedido
+    const { data: pedido, error: erroPedido } = await supabase
+      .from('pedidos')
+      .select('*')
+      .eq('id', pedidoId)
+      .single();
+
+    if (erroPedido) {
+      console.error('Erro ao buscar pedido:', erroPedido);
+      return { data: null, error: erroPedido };
+    }
+
+    // Atualizar status do pedido para no_local
+    const { data: pedidoAtualizado, error: erroAtualizacao } = await supabase
+      .from('pedidos')
+      .update({
+        status: 'no_local',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', pedidoId)
+      .select()
+      .single();
+
+    if (erroAtualizacao) {
+      console.error('Erro ao atualizar pedido:', erroAtualizacao);
+      return { data: null, error: erroAtualizacao };
+    }
+
+    // Atualizar fila de pedidos
+    const { data: filaEncontrada } = await supabase
+      .from('fila_pedidos')
+      .select('*')
+      .eq('cliente', pedido.cliente)
+      .eq('endereco', pedido.endereco)
+      .eq('status', 'em_rota')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (filaEncontrada) {
+      await supabase
+        .from('fila_pedidos')
+        .update({
+          status: 'no_local',
+        })
+        .eq('id', filaEncontrada.id);
+    }
+
+    return { data: pedidoAtualizado, error: null };
+  },
+
   // Finalizar pedido
   async finalizarPedido(pedidoId: string) {
     const { data, error } = await supabase
@@ -315,7 +369,7 @@ export const pedidosApi = {
   },
 
   // Criar pedido (Estabelecimento)
-  async criarPedido(cliente: string, endereco: string, itens: string[], estabelecimentoNome?: string, valorPedido?: number, valorEntregador?: number, estabelecimentoEndereco?: string) {
+  async criarPedido(cliente: string, endereco: string, itens: string[], estabelecimentoNome?: string, valorPedido?: number, valorEntregador?: number, estabelecimentoEndereco?: string, formaPagamento?: string) {
     const { data, error } = await supabase
       .from('pedidos')
       .insert([
@@ -328,6 +382,7 @@ export const pedidosApi = {
           estabelecimento_endereco: estabelecimentoEndereco || null,
           valor_pedido: valorPedido || null,
           valor_entregador: valorEntregador || null,
+          forma_pagamento: formaPagamento || null,
         },
       ])
       .select()

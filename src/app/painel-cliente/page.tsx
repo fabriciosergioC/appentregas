@@ -252,15 +252,6 @@ export default function PainelClientePage() {
           </div>
         </div>
 
-        {/* Voltar */}
-        <div className="text-center">
-          <button
-            onClick={() => router.push('/')}
-            className="text-green-100 hover:text-white transition-colors text-sm bg-white/10 backdrop-blur-sm px-6 py-3 rounded-lg"
-          >
-            ← Voltar para página inicial
-          </button>
-        </div>
       </div>
     </div>
   );
