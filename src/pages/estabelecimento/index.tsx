@@ -494,7 +494,8 @@ export default function Estabelecimento() {
       </Head>
 
       <div className="min-h-screen bg-gray-50">
-        {/* Sidebar */}
+        {/* Sidebar Desktop e Barra de Navegação Mobile */}
+        {/* Desktop Sidebar */}
         <aside className="fixed left-0 top-0 h-full w-64 bg-white shadow-lg z-40 hidden lg:block">
           <div className="p-4">
             <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
@@ -505,7 +506,7 @@ export default function Estabelecimento() {
               <button
                 onClick={() => setMostrarFilaPedidos(false)}
                 className={`w-full font-medium py-3 px-4 rounded-lg transition-all flex items-center gap-3 text-left ${
-                  !mostrarFilaPedidos
+                  !mostrarFilaPedidos && router.pathname !== '/cadastro-produto'
                     ? 'bg-blue-600 hover:bg-blue-700 text-white'
                     : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
                 }`}
@@ -516,7 +517,7 @@ export default function Estabelecimento() {
               <button
                 onClick={() => setMostrarFilaPedidos(true)}
                 className={`w-full font-medium py-3 px-4 rounded-lg transition-all flex items-center gap-3 text-left relative ${
-                  mostrarFilaPedidos
+                  mostrarFilaPedidos && router.pathname !== '/cadastro-produto'
                     ? 'bg-orange-500 hover:bg-orange-600 text-white'
                     : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
                 }`}
@@ -538,7 +539,7 @@ export default function Estabelecimento() {
                 }`}
               >
                 <span className="text-xl">🛍️</span>
-                Cadastrar Produtos
+                Produtos
               </button>
             </nav>
           </div>
@@ -570,7 +571,47 @@ export default function Estabelecimento() {
           </div>
         </header>
 
-        <main className="p-4 max-w-4xl mx-auto lg:ml-64">
+        {/* Mobile Navigation Bar */}
+        <nav className="fixed bottom-0 left-0 w-full bg-white shadow-lg z-50 border-t border-gray-200 lg:hidden flex justify-around p-2 pb-safe">
+          <button
+            onClick={() => setMostrarFilaPedidos(false)}
+            className={`flex flex-col items-center p-2 rounded-lg flex-1 ${
+              !mostrarFilaPedidos && router.pathname !== '/cadastro-produto' ? 'text-blue-600 font-bold' : 'text-gray-500'
+            }`}
+          >
+            <span className="text-2xl mb-1">📋</span>
+            <span className="text-xs">Pedidos</span>
+          </button>
+          
+          <button
+            onClick={() => setMostrarFilaPedidos(true)}
+            className={`flex flex-col items-center p-2 rounded-lg flex-1 relative ${
+              mostrarFilaPedidos && router.pathname !== '/cadastro-produto' ? 'text-orange-500 font-bold' : 'text-gray-500'
+            }`}
+          >
+            <div className="relative">
+              <span className="text-2xl mb-1">⏳</span>
+              {filaPedidos.filter(p => p.status === 'pendente').length > 0 && (
+                <span className="absolute -top-1 -right-2 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                  {filaPedidos.filter(p => p.status === 'pendente').length}
+                </span>
+              )}
+            </div>
+            <span className="text-xs">Fila</span>
+          </button>
+          
+          <button
+            onClick={() => router.push('/cadastro-produto')}
+            className={`flex flex-col items-center p-2 rounded-lg flex-1 ${
+              router.pathname === '/cadastro-produto' ? 'text-green-600 font-bold' : 'text-gray-500'
+            }`}
+          >
+            <span className="text-2xl mb-1">🛍️</span>
+            <span className="text-xs">Produtos</span>
+          </button>
+        </nav>
+
+        <main className="p-4 max-w-4xl mx-auto lg:ml-64 mb-20">
           {/* Banner do Último Pedido Criado */}
           {ultimoPedidoCriado && (
             <section className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl shadow-lg p-6 mb-6 text-white">
