@@ -219,14 +219,6 @@ export default function LoginEstabelecimento() {
                 💡 Use seu email para fazer login
               </p>
             </div>
-
-            <button
-              type="button"
-              onClick={() => router.push('/')}
-              className={`w-full font-bold py-4 px-4 rounded-xl shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white`}
-            >
-              ← Voltar
-            </button>
           </form>
 
           {/* Rodapé */}
