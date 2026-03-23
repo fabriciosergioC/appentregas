@@ -5,16 +5,44 @@ import { api, Pedido } from '@/services/api';
 import { assinarPedidos, removerAssinaturaPedidos, assinarLiberacaoPedidos } from '@/services/realtime';
 import PedidoCard from '@/components/pedidoCard/PedidoCard';
 import ModalSaldo from '@/components/modalSaldo/ModalSaldo';
+import { useNotificationSound } from '@/hooks/useNotificationSound';
 import '@/app/globals.css';
 
 export default function Pedidos() {
   const router = useRouter();
+  const { iniciarSomRepetitivo, pararSom, testarSom } = useNotificationSound();
   const [entregador, setEntregador] = useState<{ id: string; nome: string } | null>(null);
   const [pedidosDisponiveis, setPedidosDisponiveis] = useState<Pedido[]>([]);
   const [meusPedidos, setMeusPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
   const [tabAtiva, setTabAtiva] = useState<'disponiveis' | 'meus'>('disponiveis');
   const [modalSaldoAberto, setModalSaldoAberto] = useState(false);
+  const [audioReady, setAudioReady] = useState(false);
+  const [temPedidoNovo, setTemPedidoNovo] = useState(false);
+
+  // Verificar se áudio está pronto após interação
+  useEffect(() => {
+    const handleInteraction = () => {
+      setAudioReady(true);
+    };
+    window.addEventListener('click', handleInteraction, { once: true });
+    window.addEventListener('keydown', handleInteraction, { once: true });
+    
+    return () => {
+      window.removeEventListener('click', handleInteraction);
+      window.removeEventListener('keydown', handleInteraction);
+    };
+  }, []);
+
+  // Parar som quando não houver mais pedidos disponíveis
+  useEffect(() => {
+    if (pedidosDisponiveis.length === 0 && temPedidoNovo) {
+      setTemPedidoNovo(false);
+      pararSom();
+    } else if (pedidosDisponiveis.length > 0 && !temPedidoNovo) {
+      setTemPedidoNovo(true);
+    }
+  }, [pedidosDisponiveis.length, temPedidoNovo, pararSom]);
 
   // Função auxiliar para pegar o ID do entregador do localStorage
   const getEntregadorId = (): string | null => {
@@ -64,6 +92,10 @@ export default function Pedidos() {
             console.log('✅ Adicionando novo pedido à lista');
             return [novoPedido, ...prev];
           });
+          // Iniciar som repetitivo
+          console.log('🔔 Iniciando som repetitivo de novo pedido...');
+          setTemPedidoNovo(true);
+          iniciarSomRepetitivo();
           // Notificação
           if ('Notification' in window && Notification.permission === 'granted') {
             new Notification('Novo pedido disponível!', {
@@ -190,7 +222,7 @@ export default function Pedidos() {
 
   const handleAceitarPedido = async (pedidoId: string) => {
     const entregadorId = getEntregadorId();
-    
+
     if (!entregadorId) {
       console.error('❌ Entregador não encontrado');
       console.log('👤 Estado atual do entregador:', entregador);
@@ -198,6 +230,10 @@ export default function Pedidos() {
     }
 
     console.log('✅ Aceitando pedido:', pedidoId, 'Entregador:', entregadorId);
+
+    // Parar som ao aceitar pedido
+    pararSom();
+    setTemPedidoNovo(false);
 
     try {
       const resultado = await api.aceitarPedido(pedidoId, entregadorId);
@@ -308,6 +344,31 @@ export default function Pedidos() {
       </Head>
 
       <div className="min-h-screen bg-gray-100">
+        {/* Aviso de som */}
+        <div className={`border-l-4 p-3 text-sm ${temPedidoNovo ? 'bg-red-100 border-red-500 text-red-700 animate-pulse' : audioReady ? 'bg-green-100 border-green-500 text-green-700' : 'bg-yellow-100 border-yellow-500 text-yellow-700'}`}>
+          <div className="flex items-center gap-2">
+            <span>🔔</span>
+            <span>
+              <strong>Som de notificação:</strong> {temPedidoNovo ? '🔊 NOVO PEDIDO! Som tocando até aceitar.' : audioReady ? 'Ativado! Você ouvirá um som repetitivo quando chegar novo pedido.' : 'Clique em qualquer lugar ou pressione uma tecla para ativar.'}
+            </span>
+            <button
+              onClick={testarSom}
+              className="ml-auto bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs font-medium"
+              disabled={temPedidoNovo}
+            >
+              Testar Som
+            </button>
+            {temPedidoNovo && (
+              <button
+                onClick={() => { pararSom(); setTemPedidoNovo(false); }}
+                className="ml-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs font-medium"
+              >
+                Silenciar
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* Header */}
         <header className="bg-green-600 text-white p-4 shadow-md">
           <div className="flex justify-between items-center">
@@ -316,6 +377,13 @@ export default function Pedidos() {
               {entregador && <p className="text-sm text-green-100">{entregador.nome}</p>}
             </div>
             <div className="flex gap-2">
+              <button
+                onClick={testarSom}
+                className="bg-green-700 hover:bg-green-800 px-3 py-2 rounded text-sm font-medium flex items-center gap-1"
+                title="Testar som de notificação"
+              >
+                🔔 Som
+              </button>
               <button
                 onClick={() => setModalSaldoAberto(true)}
                 className="bg-green-700 hover:bg-green-800 px-3 py-2 rounded text-sm font-medium flex items-center gap-1"
