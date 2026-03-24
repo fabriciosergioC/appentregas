@@ -13,6 +13,8 @@ export interface Entregador {
   disponivel: boolean;
   localizacao_lat: number | null;
   localizacao_lng: number | null;
+  placa_moto: string | null;
+  foto_url: string | null;
   created_at: string;
   updated_at: string;
 }

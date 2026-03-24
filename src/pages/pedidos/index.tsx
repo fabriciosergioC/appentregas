@@ -18,6 +18,7 @@ export default function Pedidos() {
   const [tabAtiva, setTabAtiva] = useState<'disponiveis' | 'meus'>('disponiveis');
   const [modalSaldoAberto, setModalSaldoAberto] = useState(false);
   const [temPedidoNovo, setTemPedidoNovo] = useState(false);
+  const [audioSilenciadoManualmente, setAudioSilenciadoManualmente] = useState(false);
   const [pedidosRecusados, setPedidosRecusados] = useState<Set<string>>(new Set());
   const pedidosRecusadosRef = useRef(pedidosRecusados);
 
@@ -28,13 +29,16 @@ export default function Pedidos() {
 
   // Parar som quando não houver mais pedidos disponíveis
   useEffect(() => {
-    if (pedidosDisponiveis.length === 0 && temPedidoNovo) {
-      setTemPedidoNovo(false);
+    if (pedidosDisponiveis.length === 0) {
+      if (temPedidoNovo) setTemPedidoNovo(false);
       pararSom();
-    } else if (pedidosDisponiveis.length > 0 && !temPedidoNovo) {
+      setAudioSilenciadoManualmente(false); // Reseta o silêncio para a próxima leva
+    } else if (pedidosDisponiveis.length > 0 && !temPedidoNovo && !audioSilenciadoManualmente) {
+      console.log('🔔 Detectado pedidos pendentes, ativando som...');
       setTemPedidoNovo(true);
+      iniciarSomRepetitivo();
     }
-  }, [pedidosDisponiveis.length, temPedidoNovo, pararSom]);
+  }, [pedidosDisponiveis.length, temPedidoNovo, audioSilenciadoManualmente, pararSom, iniciarSomRepetitivo]);
 
   // Função auxiliar para pegar o ID do entregador do localStorage
   const getEntregadorId = (): string | null => {
@@ -165,7 +169,7 @@ export default function Pedidos() {
       removerAssinaturaPedidos();
       clearInterval(intervaloPolling);
     };
-  }, [router]);
+  }, [router, iniciarSomRepetitivo]);
 
   // Função para remover todas as assinaturas
   const limparAssinaturas = () => {
@@ -220,6 +224,19 @@ export default function Pedidos() {
       setMeusPedidos([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAtivarSomManualmente = () => {
+    console.log('🔊 Ativando som manualmente...');
+    ativarAudio();
+    setAudioSilenciadoManualmente(false);
+    
+    if (pedidosDisponiveis.length > 0) {
+      setTemPedidoNovo(true);
+      iniciarSomRepetitivo();
+    } else {
+      testarSom();
     }
   };
 
@@ -393,16 +410,19 @@ export default function Pedidos() {
               <strong>Som de notificação:</strong> {temPedidoNovo ? '🔊 NOVO PEDIDO! Som tocando até aceitar.' : audioEnabled ? 'Ativado! Você ouvirá um som repetitivo quando chegar novo pedido.' : 'Clique em qualquer lugar para ativar.'}
             </span>
             <button
-              onClick={testarSom}
-              className="ml-auto bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs font-medium"
-              disabled={temPedidoNovo}
+              onClick={handleAtivarSomManualmente}
+              className="ml-auto bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs font-medium focus:ring-2 focus:ring-green-400"
             >
               Testar Som
             </button>
             {temPedidoNovo && (
               <button
-                onClick={() => { pararSom(); setTemPedidoNovo(false); }}
-                className="ml-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs font-medium"
+                onClick={() => { 
+                  pararSom(); 
+                  setTemPedidoNovo(false); 
+                  setAudioSilenciadoManualmente(true);
+                }}
+                className="ml-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs font-medium focus:ring-2 focus:ring-red-400"
               >
                 Silenciar
               </button>
@@ -419,9 +439,9 @@ export default function Pedidos() {
             </div>
             <div className="flex gap-2">
               <button
-                onClick={testarSom}
-                className="bg-green-700 hover:bg-green-800 px-3 py-2 rounded text-sm font-medium flex items-center gap-1"
-                title="Testar som de notificação"
+                onClick={handleAtivarSomManualmente}
+                className="bg-green-700 hover:bg-green-800 px-3 py-2 rounded text-sm font-medium flex items-center gap-1 active:scale-95 transition-transform"
+                title="Ativar/Testar som de notificação"
               >
                 🔔 Som
               </button>

@@ -15,6 +15,9 @@ export default function CadastroEntregador() {
   const [telefone, setTelefone] = useState('');
   const [senha, setSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
+  const [placa, setPlaca] = useState('');
+  const [fotoPerfil, setFotoPerfil] = useState<File | null>(null);
+  const [fotoPreview, setFotoPreview] = useState<string | null>(null);
   const [telefoneFormatado, setTelefoneFormatado] = useState('');
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState('');
@@ -37,6 +40,53 @@ export default function CadastroEntregador() {
 
     setTelefoneFormatado(valor);
     setTelefone(valor.replace(/\D/g, ''));
+  };
+
+  // Formatar placa da moto (padrão Mercosul)
+  const handlePlacaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let valor = e.target.value.toUpperCase();
+    
+    // Remover caracteres inválidos
+    valor = valor.replace(/[^A-Z0-9]/g, '');
+    
+    // Limitar a 7 caracteres
+    if (valor.length > 7) valor = valor.slice(0, 7);
+    
+    // Formatar no padrão ABC1D23 ou ABC-1234
+    if (valor.length > 3) {
+      valor = `${valor.slice(0, 3)}${valor.length > 4 ? '-' : ''}${valor.slice(3)}`;
+    }
+    
+    setPlaca(valor);
+  };
+
+  // Manipular upload de foto
+  const handleFotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const arquivo = e.target.files?.[0];
+    
+    if (arquivo) {
+      // Validar tipo do arquivo
+      if (!arquivo.type.startsWith('image/')) {
+        setErro('Por favor, selecione apenas arquivos de imagem');
+        return;
+      }
+      
+      // Validar tamanho (max 5MB)
+      if (arquivo.size > 5 * 1024 * 1024) {
+        setErro('A foto deve ter no máximo 5MB');
+        return;
+      }
+      
+      setFotoPerfil(arquivo);
+      setErro('');
+      
+      // Criar preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFotoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(arquivo);
+    }
   };
 
   const handleCadastro = async (e: React.FormEvent) => {
@@ -74,7 +124,7 @@ export default function CadastroEntregador() {
     }
 
     try {
-      console.log('📝 Criando conta de entregador...', { nome, telefone });
+      console.log('📝 Criando conta de entregador...', { nome, telefone, placa });
 
       // Verificar se já existe entregador com este telefone
       const { data: existente } = await supabase
@@ -90,6 +140,30 @@ export default function CadastroEntregador() {
       // Hash da senha
       const senhaHash = btoa(senha);
 
+      // Upload da foto (se houver) - faz antes de criar o entregador para usar o telefone como ID
+      let fotoUrl = null;
+      if (fotoPerfil) {
+        console.log('📷 Upload da foto de perfil...');
+        const fileName = `foto-${telefone}-${Date.now()}-${fotoPerfil.name.replace(/[^a-zA-Z0-9.-]/g, '')}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('entregadores-fotos')
+          .upload(fileName, fotoPerfil, {
+            cacheControl: '3600',
+            upsert: false,
+          });
+
+        if (uploadError) {
+          console.error('Erro ao upload da foto:', uploadError);
+          // Continua sem a foto, não impede o cadastro
+        } else if (uploadData) {
+          const { data: urlData } = supabase.storage
+            .from('entregadores-fotos')
+            .getPublicUrl(fileName);
+          fotoUrl = urlData.publicUrl;
+          console.log('✅ Foto uploadada:', fotoUrl);
+        }
+      }
+
       // Criar entregador
       const { data: entregador, error: insertError } = await supabase
         .from('entregadores')
@@ -99,6 +173,8 @@ export default function CadastroEntregador() {
             telefone,
             senha_hash: senhaHash,
             disponivel: true,
+            placa_moto: placa || null,
+            foto_url: fotoUrl,
           },
         ])
         .select()
@@ -242,6 +318,81 @@ export default function CadastroEntregador() {
                   required
                 />
               </div>
+            </div>
+
+            {/* Upload de Foto */}
+            <div className="space-y-2">
+              <label className="block text-gray-700 font-semibold text-sm" htmlFor="foto">
+                Foto de Perfil (opcional)
+              </label>
+              <div className="flex items-center gap-4">
+                {fotoPreview ? (
+                  <div className="relative">
+                    <img
+                      src={fotoPreview}
+                      alt="Preview"
+                      className="w-24 h-24 rounded-full object-cover border-4 border-green-500 shadow-lg"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFotoPerfil(null);
+                        setFotoPreview(null);
+                      }}
+                      className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow-md"
+                      title="Remover foto"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center border-4 border-gray-300">
+                    <span className="text-4xl text-gray-400">👤</span>
+                  </div>
+                )}
+                <label className="flex-1 cursor-pointer">
+                  <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center hover:border-green-500 transition-colors">
+                    <span className="text-2xl">📷</span>
+                    <p className="text-sm text-gray-600 mt-1">
+                      {fotoPreview ? 'Trocar foto' : 'Adicionar foto'}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      JPG, PNG (máx. 5MB)
+                    </p>
+                  </div>
+                  <input
+                    id="foto"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFotoChange}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+            </div>
+
+            {/* Placa da Moto */}
+            <div className="space-y-1">
+              <label className="block text-gray-700 font-semibold text-sm" htmlFor="placa">
+                Placa da Moto (opcional)
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">🏍️</span>
+                <input
+                  id="placa"
+                  type="text"
+                  value={placa}
+                  onChange={handlePlacaChange}
+                  className="w-full border-2 border-gray-200 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-gray-50 uppercase"
+                  placeholder="ABC1D23"
+                  maxLength={8}
+                />
+              </div>
+              <p className="text-xs text-gray-500 ml-1">
+                🔤 Formato Mercosul (3 letras e 4 números)
+              </p>
             </div>
 
             <button
