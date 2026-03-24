@@ -10,31 +10,21 @@ import '@/app/globals.css';
 
 export default function Pedidos() {
   const router = useRouter();
-  const { iniciarSomRepetitivo, pararSom, testarSom } = useNotificationSound();
+  const { iniciarSomRepetitivo, pararSom, testarSom, ativarAudio, audioEnabled } = useNotificationSound();
   const [entregador, setEntregador] = useState<{ id: string; nome: string } | null>(null);
   const [pedidosDisponiveis, setPedidosDisponiveis] = useState<Pedido[]>([]);
   const [meusPedidos, setMeusPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
   const [tabAtiva, setTabAtiva] = useState<'disponiveis' | 'meus'>('disponiveis');
   const [modalSaldoAberto, setModalSaldoAberto] = useState(false);
-  const [audioReady, setAudioReady] = useState(false);
   const [temPedidoNovo, setTemPedidoNovo] = useState(false);
   const [pedidosRecusados, setPedidosRecusados] = useState<Set<string>>(new Set());
   const pedidosRecusadosRef = useRef(pedidosRecusados);
 
-  // Verificar se áudio está pronto após interação
+  // Atualizar ref quando pedidosRecusados mudar
   useEffect(() => {
-    const handleInteraction = () => {
-      setAudioReady(true);
-    };
-    window.addEventListener('click', handleInteraction, { once: true });
-    window.addEventListener('keydown', handleInteraction, { once: true });
-    
-    return () => {
-      window.removeEventListener('click', handleInteraction);
-      window.removeEventListener('keydown', handleInteraction);
-    };
-  }, []);
+    pedidosRecusadosRef.current = pedidosRecusados;
+  }, [pedidosRecusados]);
 
   // Parar som quando não houver mais pedidos disponíveis
   useEffect(() => {
@@ -45,11 +35,6 @@ export default function Pedidos() {
       setTemPedidoNovo(true);
     }
   }, [pedidosDisponiveis.length, temPedidoNovo, pararSom]);
-
-  // Atualizar ref quando pedidosRecusados mudar
-  useEffect(() => {
-    pedidosRecusadosRef.current = pedidosRecusados;
-  }, [pedidosRecusados]);
 
   // Função auxiliar para pegar o ID do entregador do localStorage
   const getEntregadorId = (): string | null => {
@@ -401,11 +386,11 @@ export default function Pedidos() {
 
       <div className="min-h-screen bg-gray-100">
         {/* Aviso de som */}
-        <div className={`border-l-4 p-3 text-sm ${temPedidoNovo ? 'bg-red-100 border-red-500 text-red-700 animate-pulse' : audioReady ? 'bg-green-100 border-green-500 text-green-700' : 'bg-yellow-100 border-yellow-500 text-yellow-700'}`}>
+        <div className={`border-l-4 p-3 text-sm ${temPedidoNovo ? 'bg-red-100 border-red-500 text-red-700 animate-pulse' : audioEnabled ? 'bg-green-100 border-green-500 text-green-700' : 'bg-yellow-100 border-yellow-500 text-yellow-700'}`}>
           <div className="flex items-center gap-2">
             <span>🔔</span>
             <span>
-              <strong>Som de notificação:</strong> {temPedidoNovo ? '🔊 NOVO PEDIDO! Som tocando até aceitar.' : audioReady ? 'Ativado! Você ouvirá um som repetitivo quando chegar novo pedido.' : 'Clique em qualquer lugar ou pressione uma tecla para ativar.'}
+              <strong>Som de notificação:</strong> {temPedidoNovo ? '🔊 NOVO PEDIDO! Som tocando até aceitar.' : audioEnabled ? 'Ativado! Você ouvirá um som repetitivo quando chegar novo pedido.' : 'Clique em qualquer lugar para ativar.'}
             </span>
             <button
               onClick={testarSom}

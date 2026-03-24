@@ -11,8 +11,25 @@ export function useNotificationSound() {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const isPlayingRef = useRef(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [audioEnabled, setAudioEnabled] = useState(false);
 
-  // Inicializar AudioContext ao montar o componente
+  // Ativar áudio após interação do usuário
+  const ativarAudio = useCallback(() => {
+    if (audioEnabled) return;
+    
+    if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+      audioContextRef.current.resume().then(() => {
+        console.log('🔊 AudioContext ativado pelo usuário');
+        setAudioEnabled(true);
+      }).catch((err) => {
+        console.warn('⚠️ Não foi possível ativar AudioContext:', err);
+      });
+    } else if (audioContextRef.current) {
+      setAudioEnabled(true);
+    }
+  }, [audioEnabled]);
+
+  // Inicializar AudioContext e listener de interação
   useEffect(() => {
     if (typeof window === 'undefined' || isInitializedRef.current) return;
 
@@ -28,13 +45,25 @@ export function useNotificationSound() {
       console.error('❌ Erro ao inicializar AudioContext:', error);
     }
 
+    // Listener para ativar áudio na primeira interação
+    const handleUserInteraction = () => {
+      ativarAudio();
+    };
+
+    window.addEventListener('click', handleUserInteraction, { once: true });
+    window.addEventListener('keydown', handleUserInteraction, { once: true });
+    window.addEventListener('touchstart', handleUserInteraction, { once: true });
+
     return () => {
       // Parar som ao desmontar
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
+      window.removeEventListener('click', handleUserInteraction);
+      window.removeEventListener('keydown', handleUserInteraction);
+      window.removeEventListener('touchstart', handleUserInteraction);
     };
-  }, []);
+  }, [ativarAudio]);
 
   const tocarUmSom = useCallback(() => {
     if (typeof window === 'undefined') return;
@@ -55,19 +84,24 @@ export function useNotificationSound() {
       // Sempre retomar o contexto se estiver suspended
       if (ctx.state === 'suspended') {
         ctx.resume().then(() => {
-          console.log('🔊 AudioContext resumed');
+          console.log('🔊 AudioContext resumed automaticamente');
+          // Tocar o som após retomar
+          tocarOscilador(ctx);
         }).catch((err) => {
           console.warn('⚠️ Não foi possível retomar AudioContext:', err);
         });
+      } else {
+        // Contexto já está ativo, tocar imediatamente
+        tocarOscilador(ctx);
       }
+    } catch (error) {
+      console.error('❌ Erro ao tocar som:', error);
+    }
+  }, []);
 
-      if (ctx.state === 'closed') {
-        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-        audioContextRef.current = new AudioContext();
-        console.log('🔄 AudioContext recriado (estava closed)');
-        return;
-      }
-
+  // Função interna para criar e tocar o oscilador
+  const tocarOscilador = useCallback((ctx: AudioContext) => {
+    try {
       // Criar oscilador para som de "ding"
       const oscillator = ctx.createOscillator();
       const gainNode = ctx.createGain();
@@ -89,8 +123,9 @@ export function useNotificationSound() {
       oscillator.start(ctx.currentTime);
       oscillator.stop(ctx.currentTime + 0.3);
 
+      console.log('🔔 Som tocado!');
     } catch (error) {
-      console.error('❌ Erro ao tocar som:', error);
+      console.error('❌ Erro ao criar oscilador:', error);
     }
   }, []);
 
@@ -159,6 +194,8 @@ export function useNotificationSound() {
     iniciarSomRepetitivo,
     pararSom,
     testarSom,
-    isPlaying
+    ativarAudio,
+    isPlaying,
+    audioEnabled
   };
 }
