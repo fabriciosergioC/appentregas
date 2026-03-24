@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { api, Pedido } from '@/services/api';
@@ -19,6 +19,8 @@ export default function Pedidos() {
   const [modalSaldoAberto, setModalSaldoAberto] = useState(false);
   const [audioReady, setAudioReady] = useState(false);
   const [temPedidoNovo, setTemPedidoNovo] = useState(false);
+  const [pedidosRecusados, setPedidosRecusados] = useState<Set<string>>(new Set());
+  const pedidosRecusadosRef = useRef(pedidosRecusados);
 
   // Verificar se áudio está pronto após interação
   useEffect(() => {
@@ -43,6 +45,11 @@ export default function Pedidos() {
       setTemPedidoNovo(true);
     }
   }, [pedidosDisponiveis.length, temPedidoNovo, pararSom]);
+
+  // Atualizar ref quando pedidosRecusados mudar
+  useEffect(() => {
+    pedidosRecusadosRef.current = pedidosRecusados;
+  }, [pedidosRecusados]);
 
   // Função auxiliar para pegar o ID do entregador do localStorage
   const getEntregadorId = (): string | null => {
@@ -84,6 +91,11 @@ export default function Pedidos() {
       (novoPedido) => {
         console.log('📦 [REALTIME] Novo pedido recebido:', novoPedido);
         if (novoPedido.status === 'pendente') {
+          // Ignorar pedidos recusados
+          if (pedidosRecusadosRef.current.has(novoPedido.id)) {
+            console.log('⚠️ Pedido recusado, ignorando...', novoPedido.id);
+            return;
+          }
           setPedidosDisponiveis((prev) => {
             if (prev.find(p => p.id === novoPedido.id)) {
               console.log('⚠️ Pedido já existe, ignorando...');
@@ -119,7 +131,13 @@ export default function Pedidos() {
             return [pedidoAtualizado, ...prev];
           });
         }
-        
+
+        // Se o pedido voltou para pendente (recusado), remover de meus pedidos
+        if (pedidoAtualizado.status === 'pendente' && pedidoAtualizado.entregador_id === null) {
+          console.log('❌ Pedido recusado, removendo da lista:', pedidoAtualizado.id);
+          setMeusPedidos((prev) => prev.filter(p => p.id !== pedidoAtualizado.id));
+        }
+
         // Atualizar pedido em meus pedidos se for deste entregador
         setMeusPedidos((prev) => {
           const pedidoDestEntregador = prev.find(p => p.id === pedidoAtualizado.id);
@@ -197,17 +215,17 @@ export default function Pedidos() {
         const novosIds = new Set(disponiveis.map(p => p.id));
         // Remove pedidos que não estão mais disponíveis
         const filtrados = prev.filter(p => novosIds.has(p.id));
-        // Adiciona novos pedidos
+        // Adiciona novos pedidos (exceto os recusados)
         const existentesIds = new Set(filtrados.map(p => p.id));
-        const novos = disponiveis.filter(p => !existentesIds.has(p.id));
-        
+        const novos = disponiveis.filter(p => !existentesIds.has(p.id) && !pedidosRecusadosRef.current.has(p.id));
+
         if (novos.length > 0) {
           console.log('✅ Adicionando', novos.length, 'novos pedidos');
         }
         if (prev.length !== disponiveis.length) {
           console.log('📊 Mudança detectada:', prev.length, '->', disponiveis.length);
         }
-        
+
         return [...novos, ...filtrados];
       });
       setMeusPedidos(meus);
@@ -275,6 +293,44 @@ export default function Pedidos() {
     } catch (error: any) {
       console.error('❌ Erro ao aceitar pedido:', error);
       alert('Erro ao aceitar pedido: ' + (error?.message || 'Erro desconhecido'));
+    }
+  };
+
+  const handleRecusarPedido = async (pedidoId: string) => {
+    if (!confirm('Tem certeza que deseja recusar este pedido?')) {
+      return;
+    }
+
+    console.log('❌ Recusando pedido:', pedidoId);
+
+    // Parar som ao recusar pedido
+    pararSom();
+    setTemPedidoNovo(false);
+
+    try {
+      const resultado = await api.recusarPedido(pedidoId);
+      console.log('📝 Pedido recusado no backend:', resultado);
+
+      if (resultado.error) {
+        console.error('❌ Erro ao recusar pedido:', resultado.error);
+        alert('Erro ao recusar pedido: ' + resultado.error.message);
+        return;
+      }
+
+      // Adicionar na lista de pedidos recusados
+      setPedidosRecusados((prev) => new Set(prev).add(pedidoId));
+
+      // Remover da lista de disponíveis imediatamente
+      setPedidosDisponiveis((prev) => {
+        const novaLista = prev.filter((p) => p.id !== pedidoId);
+        console.log('📋 Pedidos disponíveis após recusar:', novaLista.length);
+        return novaLista;
+      });
+
+      alert('Pedido recusado com sucesso!');
+    } catch (error: any) {
+      console.error('❌ Erro ao recusar pedido:', error);
+      alert('Erro ao recusar pedido: ' + (error?.message || 'Erro desconhecido'));
     }
   };
 
@@ -443,6 +499,7 @@ export default function Pedidos() {
                     key={pedido.id}
                     pedido={pedido}
                     onAceitar={() => handleAceitarPedido(pedido.id)}
+                    onRecusar={() => handleRecusarPedido(pedido.id)}
                     mostrarAcoes
                   />
                 ))}

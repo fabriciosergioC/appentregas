@@ -56,6 +56,10 @@ export const api = {
     return resultado;
   },
 
+  async recusarPedido(id: string) {
+    return await pedidosApi.recusarPedido(id);
+  },
+
   async liberarPedidoParaEntregador(id: string) {
     return await pedidosApi.liberarPedidoParaEntregador(id);
   },

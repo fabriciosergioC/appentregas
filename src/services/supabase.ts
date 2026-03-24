@@ -213,6 +213,22 @@ export const pedidosApi = {
     return { data, error };
   },
 
+  // Recusar pedido (volta para pendente)
+  async recusarPedido(pedidoId: string) {
+    const { data, error } = await supabase
+      .from('pedidos')
+      .update({
+        status: 'pendente',
+        entregador_id: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', pedidoId)
+      .select()
+      .single();
+
+    return { data, error };
+  },
+
   // Liberar pedido para o entregador (Estabelecimento)
   async liberarPedidoParaEntregador(pedidoId: string) {
     const { data, error } = await supabase

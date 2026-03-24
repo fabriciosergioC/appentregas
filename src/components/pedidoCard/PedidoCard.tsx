@@ -7,6 +7,7 @@ interface PedidoCardProps {
   pedido: Pedido;
   entregador?: { nome: string; telefone: string } | null;
   onAceitar?: () => void;
+  onRecusar?: () => void;
   onIniciar?: () => void;
   onCheguei?: () => void;
   onFinalizar?: () => void;
@@ -17,6 +18,7 @@ export default function PedidoCard({
   pedido,
   entregador,
   onAceitar,
+  onRecusar,
   onIniciar,
   onCheguei,
   onFinalizar,
@@ -138,22 +140,30 @@ export default function PedidoCard({
       {mostrarAcoes && (
         <div className="mt-4 space-y-2">
           {pedido.status === 'pendente' && onAceitar && (
-            <button
-              onClick={() => {
-                // Primeiro navega até o endereço do estabelecimento
-                if (pedido.estabelecimento_endereco) {
-                  escolherAppNavegacao(pedido.estabelecimento_endereco);
-                } else if (pedido.estabelecimento_nome) {
-                  // Se não tem endereço, tenta navegar pelo nome do estabelecimento
-                  escolherAppNavegacao(pedido.estabelecimento_nome);
-                }
-                // Depois aceita o pedido
-                onAceitar();
-              }}
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-            >
-              🛵 Aceitar Pedido + Ir ao Estabelecimento
-            </button>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={onRecusar}
+                className="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+              >
+                ❌ Recusar
+              </button>
+              <button
+                onClick={() => {
+                  // Primeiro navega até o endereço do estabelecimento
+                  if (pedido.estabelecimento_endereco) {
+                    escolherAppNavegacao(pedido.estabelecimento_endereco);
+                  } else if (pedido.estabelecimento_nome) {
+                    // Se não tem endereço, tenta navegar pelo nome do estabelecimento
+                    escolherAppNavegacao(pedido.estabelecimento_nome);
+                  }
+                  // Depois aceita o pedido
+                  onAceitar();
+                }}
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+              >
+                🛵 Aceitar + Ir
+              </button>
+            </div>
           )}
 
           {pedido.status === 'aceito' && onIniciar && (
