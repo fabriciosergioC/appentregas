@@ -3,13 +3,14 @@
  * Usa Web Audio API para gerar som sem depender de arquivos externos
  */
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 
 export function useNotificationSound() {
   const audioContextRef = useRef<AudioContext | null>(null);
   const isInitializedRef = useRef(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const isPlayingRef = useRef(false);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   // Inicializar AudioContext ao montar o componente
   useEffect(() => {
@@ -51,6 +52,7 @@ export function useNotificationSound() {
 
       const ctx = audioContextRef.current;
 
+      // Sempre retomar o contexto se estiver suspended
       if (ctx.state === 'suspended') {
         ctx.resume().then(() => {
           console.log('🔊 AudioContext resumed');
@@ -74,7 +76,7 @@ export function useNotificationSound() {
       gainNode.connect(ctx.destination);
 
       oscillator.type = 'sine';
-      
+
       // Frequência: começa em 520Hz e sobe para 780Hz (som de alerta)
       oscillator.frequency.setValueAtTime(520, ctx.currentTime);
       oscillator.frequency.linearRampToValueAtTime(780, ctx.currentTime + 0.3);
@@ -101,6 +103,16 @@ export function useNotificationSound() {
 
     console.log('🔔 Iniciando som repetitivo...');
     isPlayingRef.current = true;
+    setIsPlaying(true);
+
+    // Garantir que o AudioContext está ativo
+    if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+      audioContextRef.current.resume().then(() => {
+        console.log('🔊 AudioContext resumed ao iniciar som');
+      }).catch((err) => {
+        console.warn('⚠️ Não foi possível retomar AudioContext:', err);
+      });
+    }
 
     // Tocar primeiro som imediatamente
     tocarUmSom();
@@ -119,7 +131,8 @@ export function useNotificationSound() {
   const pararSom = useCallback(() => {
     console.log('⏹️ Parando som repetitivo');
     isPlayingRef.current = false;
-    
+    setIsPlaying(false);
+
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
@@ -128,13 +141,24 @@ export function useNotificationSound() {
 
   const testarSom = useCallback(() => {
     console.log('🧪 Testando som...');
-    tocarUmSom();
+    // Garantir que o AudioContext está ativo antes de testar
+    if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+      audioContextRef.current.resume().then(() => {
+        console.log('🔊 AudioContext resumed para teste');
+        tocarUmSom();
+      }).catch((err) => {
+        console.warn('⚠️ Não foi possível retomar AudioContext:', err);
+        tocarUmSom();
+      });
+    } else {
+      tocarUmSom();
+    }
   }, [tocarUmSom]);
 
-  return { 
-    iniciarSomRepetitivo, 
-    pararSom, 
+  return {
+    iniciarSomRepetitivo,
+    pararSom,
     testarSom,
-    isPlaying: isPlayingRef.current 
+    isPlaying
   };
 }
