@@ -11,7 +11,7 @@ import '@/app/globals.css';
 export default function Pedidos() {
   const router = useRouter();
   const { iniciarSomRepetitivo, pararSom, testarSom, ativarAudio, audioEnabled } = useNotificationSound();
-  const [entregador, setEntregador] = useState<{ id: string; nome: string } | null>(null);
+  const [entregador, setEntregador] = useState<{ id: string; nome: string; foto_url?: string | null; placa_moto?: string | null } | null>(null);
   const [pedidosDisponiveis, setPedidosDisponiveis] = useState<Pedido[]>([]);
   const [meusPedidos, setMeusPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
@@ -432,11 +432,35 @@ export default function Pedidos() {
 
         {/* Header */}
         <header className="bg-green-600 text-white p-4 shadow-md">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-xl font-bold">🛵 App do Entregador</h1>
-              {entregador && <p className="text-sm text-green-100">{entregador.nome}</p>}
+          <div className="flex items-center gap-3 mb-4">
+            {/* Foto do entregador */}
+            {entregador?.foto_url ? (
+              <img
+                src={entregador.foto_url}
+                alt={entregador.nome}
+                className="w-14 h-14 rounded-full object-cover border-2 border-white shadow-md"
+              />
+            ) : (
+              <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center border-2 border-white shadow-md">
+                <span className="text-2xl">🛵</span>
+              </div>
+            )}
+            
+            {/* Informações do entregador */}
+            <div className="flex-1">
+              <h1 className="text-lg font-bold">🛵 App do Entregador</h1>
+              <p className="text-sm text-green-100 font-medium">{entregador?.nome || 'Carregando...'}</p>
+              {entregador?.placa_moto && (
+                <div className="flex items-center gap-1 mt-0.5">
+                  <span className="text-xs">🏍️</span>
+                  <span className="text-xs text-green-100 font-mono bg-white/20 px-2 py-0.5 rounded">
+                    {entregador.placa_moto}
+                  </span>
+                </div>
+              )}
             </div>
+
+            {/* Ações */}
             <div className="flex gap-2">
               <button
                 onClick={handleAtivarSomManualmente}

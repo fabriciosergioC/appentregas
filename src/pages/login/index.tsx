@@ -53,6 +53,8 @@ export default function Login() {
       localStorage.setItem('entregador', JSON.stringify(dadosEntregador));
 
       console.log('💾 Entregador salvo no localStorage:', dadosEntregador);
+      console.log('📷 Foto URL:', dadosEntregador.foto_url);
+      console.log('🏍️ Placa:', dadosEntregador.placa_moto);
 
       // Redirecionar para página de pedidos
       router.push('/pedidos');
