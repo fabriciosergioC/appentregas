@@ -243,17 +243,17 @@ export default function CadastroEntregador() {
             )}
 
             <div className="space-y-1">
-              <label className="block text-gray-700 font-semibold text-sm" htmlFor="nome">
+              <label className="block text-gray-800 font-bold text-sm" htmlFor="nome">
                 Nome Completo *
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">👤</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg">👤</span>
                 <input
                   id="nome"
                   type="text"
                   value={nome}
                   onChange={(e) => setNome(e.target.value)}
-                  className="w-full border-2 border-gray-200 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-gray-50"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-white text-gray-900 placeholder-gray-600 font-medium"
                   placeholder="Digite seu nome completo"
                   required
                 />
@@ -261,17 +261,17 @@ export default function CadastroEntregador() {
             </div>
 
             <div className="space-y-1">
-              <label className="block text-gray-700 font-semibold text-sm" htmlFor="telefone">
+              <label className="block text-gray-800 font-bold text-sm" htmlFor="telefone">
                 Telefone / WhatsApp (com DDD) *
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">📱</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg">📱</span>
                 <input
                   id="telefone"
                   type="tel"
                   value={telefoneFormatado}
                   onChange={handleTelefoneChange}
-                  className="w-full border-2 border-gray-200 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-gray-50"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-white text-gray-900 placeholder-gray-600 font-medium"
                   placeholder="(11) 99999-9999"
                   maxLength={15}
                   required
@@ -283,17 +283,17 @@ export default function CadastroEntregador() {
             </div>
 
             <div className="space-y-1">
-              <label className="block text-gray-700 font-semibold text-sm" htmlFor="senha">
+              <label className="block text-gray-800 font-bold text-sm" htmlFor="senha">
                 Senha *
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">🔒</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg">🔒</span>
                 <input
                   id="senha"
                   type="password"
                   value={senha}
                   onChange={(e) => setSenha(e.target.value)}
-                  className="w-full border-2 border-gray-200 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-gray-50"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-white text-gray-900 placeholder-gray-600 font-medium"
                   placeholder="Mínimo 4 caracteres"
                   minLength={4}
                   required
@@ -302,17 +302,17 @@ export default function CadastroEntregador() {
             </div>
 
             <div className="space-y-1">
-              <label className="block text-gray-700 font-semibold text-sm" htmlFor="confirmarSenha">
+              <label className="block text-gray-800 font-bold text-sm" htmlFor="confirmarSenha">
                 Confirmar Senha *
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">🔒</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg">🔒</span>
                 <input
                   id="confirmarSenha"
                   type="password"
                   value={confirmarSenha}
                   onChange={(e) => setConfirmarSenha(e.target.value)}
-                  className="w-full border-2 border-gray-200 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-gray-50"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-white text-gray-900 placeholder-gray-600 font-medium"
                   placeholder="Repita a senha"
                   minLength={4}
                   required
@@ -375,17 +375,17 @@ export default function CadastroEntregador() {
 
             {/* Placa da Moto */}
             <div className="space-y-1">
-              <label className="block text-gray-700 font-semibold text-sm" htmlFor="placa">
+              <label className="block text-gray-800 font-bold text-sm" htmlFor="placa">
                 Placa da Moto (opcional)
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">🏍️</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg">🏍️</span>
                 <input
                   id="placa"
                   type="text"
                   value={placa}
                   onChange={handlePlacaChange}
-                  className="w-full border-2 border-gray-200 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-gray-50 uppercase"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-white text-gray-900 placeholder-gray-600 font-medium uppercase"
                   placeholder="ABC1D23"
                   maxLength={8}
                 />
