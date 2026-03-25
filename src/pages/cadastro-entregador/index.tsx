@@ -95,6 +95,10 @@ export default function CadastroEntregador() {
     setErro('');
     setSucesso('');
 
+    console.log('🔍 Verificando foto antes de validar:');
+    console.log('  - fotoPerfil:', fotoPerfil ? `SIM (${fotoPerfil.name}, ${fotoPerfil.size} bytes)` : 'NÃO');
+    console.log('  - fotoPreview:', fotoPreview ? `SIM (${fotoPreview.length} bytes)` : 'NÃO');
+
     // Validações
     if (!nome || !telefone || !senha) {
       setErro('Por favor, preencha todos os campos obrigatórios');
