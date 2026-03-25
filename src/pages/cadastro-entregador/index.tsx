@@ -143,8 +143,8 @@ export default function CadastroEntregador() {
       // Upload da foto (se houver)
       let fotoUrl = null;
       if (fotoPerfil) {
-        console.log('📷 Processando foto de perfil...');
-        
+        console.log('📷 Processando foto de perfil...', fotoPerfil.name, fotoPerfil.size, 'bytes');
+
         try {
           // Converter para base64 e salvar diretamente no campo foto_url
           const base64 = await new Promise<string>((resolve, reject) => {
@@ -156,6 +156,7 @@ export default function CadastroEntregador() {
 
           fotoUrl = base64;
           console.log('✅ Foto convertida para base64:', fotoUrl.substring(0, 50) + '...');
+          console.log('📊 Tamanho base64:', fotoUrl.length, 'bytes');
         } catch (error) {
           console.error('❌ Erro ao processar foto:', error);
           // Tenta upload no storage como fallback
@@ -181,7 +182,17 @@ export default function CadastroEntregador() {
             console.error('❌ Erro no storage:', storageError);
           }
         }
+      } else {
+        console.log('⚠️ Nenhuma foto selecionada');
       }
+
+      console.log('📝 Dados para insert:', {
+        nome,
+        telefone,
+        placa_moto: placa || null,
+        foto_url: fotoUrl ? 'base64 (' + fotoUrl.length + ' bytes)' : null,
+        disponivel: true,
+      });
 
       // Criar entregador
       const { data: entregador, error: insertError } = await supabase
@@ -200,11 +211,12 @@ export default function CadastroEntregador() {
         .single();
 
       if (insertError) {
-        console.error('Erro ao criar entregador:', insertError);
+        console.error('❌ Erro ao criar entregador:', insertError);
         throw new Error('Erro ao criar conta. Tente novamente.');
       }
 
       console.log('✅ Entregador criado com sucesso:', entregador);
+      console.log('📷 Foto URL salva:', entregador.foto_url ? 'SIM (' + entregador.foto_url.length + ' bytes)' : 'NÃO');
 
       setSucesso('✅ Cadastro realizado com sucesso! Redirecionando para login...');
 

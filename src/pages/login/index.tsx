@@ -127,7 +127,7 @@ export default function Login() {
                   type="text"
                   value={nome}
                   onChange={(e) => setNome(e.target.value)}
-                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-white text-gray-900 placeholder-gray-600 font-medium"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-white text-gray-900 placeholder-gray-700 font-medium"
                   placeholder="Digite seu nome completo"
                   required
                 />
@@ -145,7 +145,7 @@ export default function Login() {
                   type="password"
                   value={senha}
                   onChange={(e) => setSenha(e.target.value)}
-                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-white text-gray-900 placeholder-gray-600 font-medium"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-white text-gray-900 placeholder-gray-700 font-medium"
                   placeholder="Digite sua senha"
                   minLength={4}
                   required

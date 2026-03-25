@@ -12,7 +12,6 @@ interface Estabelecimento {
   email: string;
   telefone: string;
   cnpj?: string;
-  contato_estabelecimento?: string;
 }
 
 interface Produto {
@@ -157,13 +156,6 @@ export default function EstabelecimentoCard({ estabelecimento }: Estabelecimento
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <span className="text-lg">📄</span>
             <span>CNPJ: {estabelecimento.cnpj}</span>
-          </div>
-        )}
-
-        {estabelecimento.contato_estabelecimento && (
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <span className="text-lg">📞</span>
-            <span>{estabelecimento.contato_estabelecimento}</span>
           </div>
         )}
       </div>

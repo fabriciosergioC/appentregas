@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(ipconfig *)",
+      "Bash(findstr *)",
+      "Bash(nslookup *)",
+      "Bash(ping *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push)"
+    ]
+  },
+  "$version": 3
+}

@@ -231,7 +231,7 @@ export default function CadastroEstabelecimento() {
                   type="text"
                   value={nomeEstabelecimento}
                   onChange={(e) => setNomeEstabelecimento(e.target.value)}
-                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-500 font-medium"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-700 font-medium"
                   placeholder="Ex: Pizzaria do João"
                   required
                 />
@@ -249,7 +249,7 @@ export default function CadastroEstabelecimento() {
                   type="text"
                   value={nome}
                   onChange={(e) => setNome(e.target.value)}
-                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-500 font-medium"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-700 font-medium"
                   placeholder="Seu nome completo"
                   required
                 />
@@ -267,7 +267,7 @@ export default function CadastroEstabelecimento() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-500 font-medium"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-700 font-medium"
                   placeholder="seu@email.com"
                   required
                 />
@@ -285,7 +285,7 @@ export default function CadastroEstabelecimento() {
                   type="tel"
                   value={telefoneFormatado}
                   onChange={handleTelefoneChange}
-                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-500 font-medium"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-700 font-medium"
                   placeholder="(11) 99999-9999"
                   maxLength={15}
                   required
@@ -304,7 +304,7 @@ export default function CadastroEstabelecimento() {
                   type="text"
                   value={cnpjFormatado}
                   onChange={handleCnpjChange}
-                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-500 font-medium"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-700 font-medium"
                   placeholder="00.000.000/0000-00"
                   maxLength={19}
                 />
@@ -322,7 +322,7 @@ export default function CadastroEstabelecimento() {
                   type="password"
                   value={senha}
                   onChange={(e) => setSenha(e.target.value)}
-                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-500 font-medium"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-700 font-medium"
                   placeholder="Mínimo 6 caracteres"
                   required
                 />
@@ -340,7 +340,7 @@ export default function CadastroEstabelecimento() {
                   type="password"
                   value={confirmarSenha}
                   onChange={(e) => setConfirmarSenha(e.target.value)}
-                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-500 font-medium"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-700 font-medium"
                   placeholder="Repita a senha"
                   required
                 />
