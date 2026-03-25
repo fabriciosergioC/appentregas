@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { api, Pedido } from '@/services/api';
+import { api, Pedido, supabase } from '@/services/api';
 import { assinarPedidos, removerAssinaturaPedidos, assinarLiberacaoPedidos } from '@/services/realtime';
 import PedidoCard from '@/components/pedidoCard/PedidoCard';
 import ModalSaldo from '@/components/modalSaldo/ModalSaldo';
@@ -73,6 +73,28 @@ export default function Pedidos() {
     setEntregador(entregadorData);
 
     console.log('👤 Entregador logado:', entregadorData);
+
+    // Buscar dados atualizados do entregador (incluindo foto)
+    const buscarDadosEntregador = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('entregadores')
+          .select('*')
+          .eq('id', entregadorData.id)
+          .single();
+
+        if (data && !error) {
+          console.log('📷 Foto do entregador:', data.foto_url);
+          setEntregador(data);
+          // Atualizar localStorage com dados atualizados
+          localStorage.setItem('entregador', JSON.stringify(data));
+        }
+      } catch (error) {
+        console.error('❌ Erro ao buscar dados do entregador:', error);
+      }
+    };
+
+    buscarDadosEntregador();
 
     // Assinar mudanças em tempo real com Supabase
     assinarPedidos(
@@ -432,57 +454,63 @@ export default function Pedidos() {
 
         {/* Header */}
         <header className="bg-green-600 text-white p-4 shadow-md">
-          <div className="flex items-center gap-3 mb-4">
-            {/* Foto do entregador */}
-            {entregador?.foto_url ? (
-              <img
-                src={entregador.foto_url}
-                alt={entregador.nome}
-                className="w-14 h-14 rounded-full object-cover border-2 border-white shadow-md"
-              />
-            ) : (
-              <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center border-2 border-white shadow-md">
-                <span className="text-2xl">🛵</span>
-              </div>
-            )}
-            
-            {/* Informações do entregador */}
-            <div className="flex-1">
-              <h1 className="text-lg font-bold">🛵 App do Entregador</h1>
-              <p className="text-sm text-green-100 font-medium">{entregador?.nome || 'Carregando...'}</p>
-              {entregador?.placa_moto && (
-                <div className="flex items-center gap-1 mt-0.5">
-                  <span className="text-xs">🏍️</span>
-                  <span className="text-xs text-green-100 font-mono bg-white/20 px-2 py-0.5 rounded">
-                    {entregador.placa_moto}
-                  </span>
+          {/* Card de Perfil do Entregador */}
+          <div className="bg-gradient-to-r from-green-700 to-emerald-700 rounded-2xl p-4 mb-4 border border-white/20">
+            <div className="flex items-center gap-4">
+              {/* Foto do entregador */}
+              {entregador?.foto_url ? (
+                <img
+                  src={entregador.foto_url}
+                  alt={entregador.nome}
+                  className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-lg"
+                />
+              ) : (
+                <div className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center border-4 border-white shadow-lg">
+                  <span className="text-4xl">🛵</span>
                 </div>
               )}
-            </div>
 
-            {/* Ações */}
-            <div className="flex gap-2">
-              <button
-                onClick={handleAtivarSomManualmente}
-                className="bg-green-700 hover:bg-green-800 px-3 py-2 rounded text-sm font-medium flex items-center gap-1 active:scale-95 transition-transform"
-                title="Ativar/Testar som de notificação"
-              >
-                🔔 Som
-              </button>
-              <button
-                onClick={() => setModalSaldoAberto(true)}
-                className="bg-green-700 hover:bg-green-800 px-3 py-2 rounded text-sm font-medium flex items-center gap-1"
-                title="Ver saldo"
-              >
-                💰 Saldo
-              </button>
-              <button
-                onClick={handleLogout}
-                className="bg-green-700 hover:bg-green-800 px-3 py-2 rounded text-sm"
-              >
-                Sair
-              </button>
+              {/* Informações do entregador */}
+              <div className="flex-1">
+                <h1 className="text-xl font-bold">🛵 {entregador?.nome || 'Carregando...'}</h1>
+                {entregador?.placa_moto && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="text-lg">🏍️</span>
+                    <span className="text-sm font-bold text-yellow-300 bg-black/30 px-3 py-1 rounded font-mono">
+                      {entregador.placa_moto}
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
+          </div>
+
+          {/* Ações */}
+          <div className="flex gap-2 mb-4">
+            <button
+              onClick={handleAtivarSomManualmente}
+              className="flex-1 bg-green-700 hover:bg-green-800 px-4 py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 active:scale-95 transition-transform border border-white/20"
+              title="Ativar/Testar som de notificação"
+            >
+              <span className="text-lg">🔔</span>
+              <span>Som</span>
+            </button>
+            <button
+              onClick={() => setModalSaldoAberto(true)}
+              className="flex-1 bg-green-700 hover:bg-green-800 px-4 py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 border border-white/20"
+              title="Ver saldo"
+            >
+              <span className="text-lg">💰</span>
+              <span>Saldo</span>
+            </button>
+            <button
+              onClick={handleLogout}
+              className="bg-red-600 hover:bg-red-700 px-4 py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 border border-white/20"
+              title="Sair"
+            >
+              <span className="text-lg">🚪</span>
+              <span>Sair</span>
+            </button>
           </div>
 
           {/* Tabs */}
