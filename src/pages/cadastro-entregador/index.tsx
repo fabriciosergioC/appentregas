@@ -140,27 +140,46 @@ export default function CadastroEntregador() {
       // Hash da senha
       const senhaHash = btoa(senha);
 
-      // Upload da foto (se houver) - faz antes de criar o entregador para usar o telefone como ID
+      // Upload da foto (se houver)
       let fotoUrl = null;
       if (fotoPerfil) {
-        console.log('📷 Upload da foto de perfil...');
-        const fileName = `foto-${telefone}-${Date.now()}-${fotoPerfil.name.replace(/[^a-zA-Z0-9.-]/g, '')}`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('entregadores-fotos')
-          .upload(fileName, fotoPerfil, {
-            cacheControl: '3600',
-            upsert: false,
+        console.log('📷 Processando foto de perfil...');
+        
+        try {
+          // Converter para base64 e salvar diretamente no campo foto_url
+          const base64 = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(fotoPerfil);
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = error => reject(error);
           });
 
-        if (uploadError) {
-          console.error('Erro ao upload da foto:', uploadError);
-          // Continua sem a foto, não impede o cadastro
-        } else if (uploadData) {
-          const { data: urlData } = supabase.storage
-            .from('entregadores-fotos')
-            .getPublicUrl(fileName);
-          fotoUrl = urlData.publicUrl;
-          console.log('✅ Foto uploadada:', fotoUrl);
+          fotoUrl = base64;
+          console.log('✅ Foto convertida para base64:', fotoUrl.substring(0, 50) + '...');
+        } catch (error) {
+          console.error('❌ Erro ao processar foto:', error);
+          // Tenta upload no storage como fallback
+          try {
+            const fileName = `foto-${telefone}-${Date.now()}-${fotoPerfil.name.replace(/[^a-zA-Z0-9.-]/g, '')}`;
+            const { data: uploadData, error: uploadError } = await supabase.storage
+              .from('entregadores-fotos')
+              .upload(fileName, fotoPerfil, {
+                cacheControl: '3600',
+                upsert: false,
+              });
+
+            if (uploadError) {
+              console.error('❌ Erro no upload storage:', uploadError);
+            } else if (uploadData) {
+              const { data: urlData } = supabase.storage
+                .from('entregadores-fotos')
+                .getPublicUrl(fileName);
+              fotoUrl = urlData.publicUrl;
+              console.log('✅ Foto uploadada no storage:', fotoUrl);
+            }
+          } catch (storageError) {
+            console.error('❌ Erro no storage:', storageError);
+          }
         }
       }
 
