@@ -5,8 +5,8 @@ import { createClient } from '@supabase/supabase-js';
 import '@/app/globals.css';
 
 // Cliente Supabase
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabaseUrl = 'https://lhvfjaimrsrbvketayck.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxodmZqYWltcnNyYnZrZXRheWNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3MzE2NjIsImV4cCI6MjA4OTMwNzY2Mn0.Y394p7pCANhbBeJNHmkUDBsbDZFOWSohF0Z9_7Xf11I';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export default function CadastroEstabelecimento() {
@@ -16,12 +16,51 @@ export default function CadastroEstabelecimento() {
   const [senha, setSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
   const [nomeEstabelecimento, setNomeEstabelecimento] = useState('');
-  const [cnpj, setCnpj] = useState('');
   const [telefone, setTelefone] = useState('');
-  const [contatoEstabelecimento, setContatoEstabelecimento] = useState('');
+  const [cnpj, setCnpj] = useState('');
+  const [telefoneFormatado, setTelefoneFormatado] = useState('');
+  const [cnpjFormatado, setCnpjFormatado] = useState('');
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState('');
   const [sucesso, setSucesso] = useState('');
+
+  // Formatar telefone enquanto digita
+  const handleTelefoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let valor = e.target.value.replace(/\D/g, '');
+    if (valor.length > 11) valor = valor.slice(0, 11);
+
+    if (valor.length >= 10) {
+      valor = `(${valor.slice(0, 2)}) ${valor.slice(2, 7)}-${valor.slice(7, 11)}`;
+    } else if (valor.length > 6) {
+      valor = `(${valor.slice(0, 2)}) ${valor.slice(2, 6)}-${valor.slice(6)}`;
+    } else if (valor.length > 2) {
+      valor = `(${valor.slice(0, 2)}) ${valor.slice(2)}`;
+    } else if (valor.length > 0) {
+      valor = `(${valor}`;
+    }
+
+    setTelefoneFormatado(valor);
+    setTelefone(valor.replace(/\D/g, ''));
+  };
+
+  // Formatar CNPJ enquanto digita
+  const handleCnpjChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let valor = e.target.value.replace(/\D/g, '');
+    if (valor.length > 14) valor = valor.slice(0, 14);
+
+    if (valor.length > 12) {
+      valor = `${valor.slice(0, 2)}.${valor.slice(2, 5)}.${valor.slice(5, 8)}/${valor.slice(8, 12)}-${valor.slice(12)}`;
+    } else if (valor.length > 8) {
+      valor = `${valor.slice(0, 2)}.${valor.slice(2, 5)}.${valor.slice(5, 8)}/${valor.slice(8)}`;
+    } else if (valor.length > 5) {
+      valor = `${valor.slice(0, 2)}.${valor.slice(2, 5)}.${valor.slice(5)}`;
+    } else if (valor.length > 2) {
+      valor = `${valor.slice(0, 2)}.${valor.slice(2)}`;
+    }
+
+    setCnpjFormatado(valor);
+    setCnpj(valor.replace(/\D/g, ''));
+  };
 
   const handleCadastro = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +69,7 @@ export default function CadastroEstabelecimento() {
     setSucesso('');
 
     // Validações
-    if (!nome || !email || !senha || !nomeEstabelecimento) {
+    if (!nome || !email || !senha || !nomeEstabelecimento || !telefone) {
       setErro('Por favor, preencha todos os campos obrigatórios');
       setLoading(false);
       return;
@@ -40,6 +79,14 @@ export default function CadastroEstabelecimento() {
     const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     if (!emailValido) {
       setErro('Por favor, informe um email válido');
+      setLoading(false);
+      return;
+    }
+
+    // Validar telefone (10 ou 11 dígitos)
+    const telefoneLimpo = telefone.replace(/\D/g, '');
+    if (telefoneLimpo.length < 10 || telefoneLimpo.length > 11) {
+      setErro('Por favor, informe um telefone válido (com DDD)');
       setLoading(false);
       return;
     }
@@ -80,7 +127,12 @@ export default function CadastroEstabelecimento() {
       // Hash da senha
       const senhaHash = btoa(senha);
 
-      // Inserir na tabela estabelecimentos (JÁ ATIVO - sem confirmação)
+      console.log('📡 Tentando insert no Supabase...', {
+        url: supabaseUrl,
+        temChave: !!supabaseAnonKey
+      });
+
+      // Inserir na tabela estabelecimentos
       const { data: estabelecimento, error: insertError } = await supabase
         .from('estabelecimentos')
         .insert([
@@ -89,21 +141,20 @@ export default function CadastroEstabelecimento() {
             senha_hash: senhaHash,
             nome_estabelecimento: nomeEstabelecimento,
             nome_responsavel: nome,
-            telefone: telefone || '',
-            cnpj: cnpj || '',
-            contato_estabelecimento: contatoEstabelecimento || '',
-            ativo: true, // JÁ ATIVO! Sem confirmação necessária
+            telefone: telefone,
+            cnpj: cnpj || null,
+            ativo: true,
           },
         ])
         .select()
         .single();
 
       if (insertError) {
+        console.error('❌ Erro detalhado:', insertError);
         if (insertError.code === '23505') {
           throw new Error('Este email já está cadastrado');
         }
-        console.error('Erro ao criar estabelecimento:', insertError);
-        throw new Error('Erro ao criar conta. Tente novamente.');
+        throw new Error(`Erro ao criar conta: ${insertError.message}`);
       }
 
       console.log('✅ Estabelecimento criado com sucesso:', estabelecimento);
@@ -170,17 +221,17 @@ export default function CadastroEstabelecimento() {
             )}
 
             <div className="space-y-1">
-              <label className="block text-gray-700 font-semibold text-sm" htmlFor="nomeEstabelecimento">
+              <label className="block text-gray-800 font-bold text-sm" htmlFor="nomeEstabelecimento">
                 Nome do Estabelecimento *
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">🏪</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg">🏪</span>
                 <input
                   id="nomeEstabelecimento"
                   type="text"
                   value={nomeEstabelecimento}
                   onChange={(e) => setNomeEstabelecimento(e.target.value)}
-                  className="w-full border-2 border-gray-200 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-gray-50"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-500 font-medium"
                   placeholder="Ex: Pizzaria do João"
                   required
                 />
@@ -188,17 +239,17 @@ export default function CadastroEstabelecimento() {
             </div>
 
             <div className="space-y-1">
-              <label className="block text-gray-700 font-semibold text-sm" htmlFor="nome">
+              <label className="block text-gray-800 font-bold text-sm" htmlFor="nome">
                 Seu Nome *
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">👤</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg">👤</span>
                 <input
                   id="nome"
                   type="text"
                   value={nome}
                   onChange={(e) => setNome(e.target.value)}
-                  className="w-full border-2 border-gray-200 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-gray-50"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-500 font-medium"
                   placeholder="Seu nome completo"
                   required
                 />
@@ -206,17 +257,17 @@ export default function CadastroEstabelecimento() {
             </div>
 
             <div className="space-y-1">
-              <label className="block text-gray-700 font-semibold text-sm" htmlFor="email">
+              <label className="block text-gray-800 font-bold text-sm" htmlFor="email">
                 Email *
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">📧</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg">📧</span>
                 <input
                   id="email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full border-2 border-gray-200 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-gray-50"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-500 font-medium"
                   placeholder="seu@email.com"
                   required
                 />
@@ -224,72 +275,54 @@ export default function CadastroEstabelecimento() {
             </div>
 
             <div className="space-y-1">
-              <label className="block text-gray-700 font-semibold text-sm" htmlFor="cnpj">
-                CNPJ (Opcional)
+              <label className="block text-gray-800 font-bold text-sm" htmlFor="telefone">
+                Telefone / WhatsApp (com DDD) *
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">📄</span>
-                <input
-                  id="cnpj"
-                  type="text"
-                  value={cnpj}
-                  onChange={(e) => setCnpj(e.target.value)}
-                  className="w-full border-2 border-gray-200 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-gray-50"
-                  placeholder="00.000.000/0000-00"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="block text-gray-700 font-semibold text-sm" htmlFor="telefone">
-                Telefone/WhatsApp *
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">📞</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg">📱</span>
                 <input
                   id="telefone"
                   type="tel"
-                  value={telefone}
-                  onChange={(e) => setTelefone(e.target.value)}
-                  className="w-full border-2 border-gray-200 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-gray-50"
-                  placeholder="(00) 00000-0000"
+                  value={telefoneFormatado}
+                  onChange={handleTelefoneChange}
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-500 font-medium"
+                  placeholder="(11) 99999-9999"
+                  maxLength={15}
                   required
                 />
               </div>
             </div>
 
             <div className="space-y-1">
-              <label className="block text-gray-700 font-semibold text-sm" htmlFor="contatoEstabelecimento">
-                Contato do Estabelecimento
+              <label className="block text-gray-800 font-bold text-sm" htmlFor="cnpj">
+                CNPJ (opcional)
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">📝</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg">🏢</span>
                 <input
-                  id="contatoEstabelecimento"
+                  id="cnpj"
                   type="text"
-                  value={contatoEstabelecimento}
-                  onChange={(e) => setContatoEstabelecimento(e.target.value)}
-                  className="w-full border-2 border-gray-200 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-gray-50"
-                  placeholder="Ex: (00) 00000-0000 / contato@empresa.com"
+                  value={cnpjFormatado}
+                  onChange={handleCnpjChange}
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-500 font-medium"
+                  placeholder="00.000.000/0000-00"
+                  maxLength={19}
                 />
               </div>
-              <p className="text-xs text-gray-500 px-1">
-                Este contato será exibido no painel do cliente
-              </p>
             </div>
 
             <div className="space-y-1">
-              <label className="block text-gray-700 font-semibold text-sm" htmlFor="senha">
+              <label className="block text-gray-800 font-bold text-sm" htmlFor="senha">
                 Senha *
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">🔒</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg">🔒</span>
                 <input
                   id="senha"
                   type="password"
                   value={senha}
                   onChange={(e) => setSenha(e.target.value)}
-                  className="w-full border-2 border-gray-200 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-gray-50"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-500 font-medium"
                   placeholder="Mínimo 6 caracteres"
                   required
                 />
@@ -297,17 +330,17 @@ export default function CadastroEstabelecimento() {
             </div>
 
             <div className="space-y-1">
-              <label className="block text-gray-700 font-semibold text-sm" htmlFor="confirmarSenha">
+              <label className="block text-gray-800 font-bold text-sm" htmlFor="confirmarSenha">
                 Confirmar Senha *
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">🔒</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg">🔒</span>
                 <input
                   id="confirmarSenha"
                   type="password"
                   value={confirmarSenha}
                   onChange={(e) => setConfirmarSenha(e.target.value)}
-                  className="w-full border-2 border-gray-200 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-gray-50"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-500 font-medium"
                   placeholder="Repita a senha"
                   required
                 />
