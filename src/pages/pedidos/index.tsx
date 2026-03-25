@@ -72,25 +72,40 @@ export default function Pedidos() {
     const entregadorData = JSON.parse(dadosEntregador);
     setEntregador(entregadorData);
 
-    console.log('👤 Entregador logado:', entregadorData);
+    console.log('👤 Dados do localStorage:', {
+      nome: entregadorData.nome,
+      tem_foto: !!entregadorData.foto_url,
+      foto_length: entregadorData.foto_url?.length || 0
+    });
 
     // Buscar dados atualizados do entregador (incluindo foto)
     const buscarDadosEntregador = async () => {
       try {
+        console.log('🔄 Buscando dados atualizados do banco (Supabase)...');
         const { data, error } = await supabase
           .from('entregadores')
           .select('*')
           .eq('id', entregadorData.id)
           .single();
 
-        if (data && !error) {
-          console.log('📷 Foto do entregador:', data.foto_url);
+        if (error) {
+          console.error('❌ Erro Supabase ao buscar entregador:', error);
+          return;
+        }
+
+        if (data) {
+          console.log('✅ Dados carregados do banco:', {
+            nome: data.nome,
+            tem_foto: !!data.foto_url,
+            foto_length: data.foto_url?.length || 0
+          });
+          
           setEntregador(data);
-          // Atualizar localStorage com dados atualizados
+          // Atualizar localStorage com os dados mais recentes do banco
           localStorage.setItem('entregador', JSON.stringify(data));
         }
       } catch (error) {
-        console.error('❌ Erro ao buscar dados do entregador:', error);
+        console.error('❌ Erro inesperado ao buscar dados do entregador:', error);
       }
     };
 
