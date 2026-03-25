@@ -144,17 +144,17 @@ export default function LoginEstabelecimento() {
             )}
 
             <div className="space-y-1">
-              <label className="block text-gray-700 font-semibold text-sm" htmlFor="email">
+              <label className="block text-gray-800 font-bold text-sm" htmlFor="email">
                 Email
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">📧</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg">📧</span>
                 <input
                   id="email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full border-2 border-gray-200 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-gray-50"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-white text-gray-900 placeholder-gray-500 font-medium"
                   placeholder="seu@email.com"
                   required
                 />
@@ -162,17 +162,17 @@ export default function LoginEstabelecimento() {
             </div>
 
             <div className="space-y-1">
-              <label className="block text-gray-700 font-semibold text-sm" htmlFor="senha">
+              <label className="block text-gray-800 font-bold text-sm" htmlFor="senha">
                 Senha
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">🔒</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg">🔒</span>
                 <input
                   id="senha"
                   type="password"
                   value={senha}
                   onChange={(e) => setSenha(e.target.value)}
-                  className="w-full border-2 border-gray-200 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-gray-50"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-500 font-medium"
                   placeholder="••••••••"
                   required
                 />
