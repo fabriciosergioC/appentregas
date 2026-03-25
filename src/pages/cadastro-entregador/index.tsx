@@ -140,83 +140,58 @@ export default function CadastroEntregador() {
       // Hash da senha
       const senhaHash = btoa(senha);
 
-      // Upload da foto (se houver)
+      // Processar foto (se houver)
       let fotoUrl = null;
       if (fotoPerfil) {
-        console.log('📷 Processando foto de perfil...', fotoPerfil.name, fotoPerfil.size, 'bytes');
+        console.log('📷 Processando foto:', fotoPerfil.name, fotoPerfil.size, 'bytes');
+        
+        // Converter para base64
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(fotoPerfil);
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = error => reject(error);
+        });
 
-        try {
-          // Converter para base64 e salvar diretamente no campo foto_url
-          const base64 = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(fotoPerfil);
-            reader.onload = () => resolve(reader.result as string);
-            reader.onerror = error => reject(error);
-          });
-
-          fotoUrl = base64;
-          console.log('✅ Foto convertida para base64:', fotoUrl.substring(0, 50) + '...');
-          console.log('📊 Tamanho base64:', fotoUrl.length, 'bytes');
-        } catch (error) {
-          console.error('❌ Erro ao processar foto:', error);
-          // Tenta upload no storage como fallback
-          try {
-            const fileName = `foto-${telefone}-${Date.now()}-${fotoPerfil.name.replace(/[^a-zA-Z0-9.-]/g, '')}`;
-            const { data: uploadData, error: uploadError } = await supabase.storage
-              .from('entregadores-fotos')
-              .upload(fileName, fotoPerfil, {
-                cacheControl: '3600',
-                upsert: false,
-              });
-
-            if (uploadError) {
-              console.error('❌ Erro no upload storage:', uploadError);
-            } else if (uploadData) {
-              const { data: urlData } = supabase.storage
-                .from('entregadores-fotos')
-                .getPublicUrl(fileName);
-              fotoUrl = urlData.publicUrl;
-              console.log('✅ Foto uploadada no storage:', fotoUrl);
-            }
-          } catch (storageError) {
-            console.error('❌ Erro no storage:', storageError);
-          }
-        }
-      } else {
-        console.log('⚠️ Nenhuma foto selecionada');
+        fotoUrl = base64;
+        console.log('✅ Foto base64 gerada, tamanho:', fotoUrl.length, 'bytes');
       }
 
-      console.log('📝 Dados para insert:', {
+      console.log('📝 Inserindo entregador:', {
         nome,
         telefone,
         placa_moto: placa || null,
-        foto_url: fotoUrl ? 'base64 (' + fotoUrl.length + ' bytes)' : null,
-        disponivel: true,
+        tem_foto: !!fotoUrl,
+        foto_length: fotoUrl?.length || 0,
       });
 
       // Criar entregador
+      const insertData = {
+        nome,
+        telefone,
+        senha_hash: senhaHash,
+        disponivel: true,
+        placa_moto: placa || null,
+        foto_url: fotoUrl,
+      };
+
+      console.log('📦 Dados do insert:', insertData);
+
       const { data: entregador, error: insertError } = await supabase
         .from('entregadores')
-        .insert([
-          {
-            nome,
-            telefone,
-            senha_hash: senhaHash,
-            disponivel: true,
-            placa_moto: placa || null,
-            foto_url: fotoUrl,
-          },
-        ])
+        .insert([insertData])
         .select()
         .single();
 
       if (insertError) {
-        console.error('❌ Erro ao criar entregador:', insertError);
-        throw new Error('Erro ao criar conta. Tente novamente.');
+        console.error('❌ Erro no insert:', insertError);
+        console.error('📋 Detalhes:', insertError.details);
+        console.error('📝 Hint:', insertError.hint);
+        throw new Error('Erro ao criar conta: ' + insertError.message);
       }
 
-      console.log('✅ Entregador criado com sucesso:', entregador);
-      console.log('📷 Foto URL salva:', entregador.foto_url ? 'SIM (' + entregador.foto_url.length + ' bytes)' : 'NÃO');
+      console.log('✅ Entregador criado:', entregador);
+      console.log('📷 Foto salva:', entregador.foto_url ? `SIM (${entregador.foto_url.length} bytes)` : 'NÃO');
 
       setSucesso('✅ Cadastro realizado com sucesso! Redirecionando para login...');
 
