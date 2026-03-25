@@ -253,7 +253,7 @@ export default function CadastroEntregador() {
                   type="text"
                   value={nome}
                   onChange={(e) => setNome(e.target.value)}
-                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-white text-gray-900 placeholder-gray-600 font-medium"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-700 font-medium"
                   placeholder="Digite seu nome completo"
                   required
                 />
@@ -271,7 +271,7 @@ export default function CadastroEntregador() {
                   type="tel"
                   value={telefoneFormatado}
                   onChange={handleTelefoneChange}
-                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-white text-gray-900 placeholder-gray-600 font-medium"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-700 font-medium"
                   placeholder="(11) 99999-9999"
                   maxLength={15}
                   required
@@ -293,7 +293,7 @@ export default function CadastroEntregador() {
                   type="password"
                   value={senha}
                   onChange={(e) => setSenha(e.target.value)}
-                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-white text-gray-900 placeholder-gray-600 font-medium"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-700 font-medium"
                   placeholder="Mínimo 4 caracteres"
                   minLength={4}
                   required
@@ -312,7 +312,7 @@ export default function CadastroEntregador() {
                   type="password"
                   value={confirmarSenha}
                   onChange={(e) => setConfirmarSenha(e.target.value)}
-                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-white text-gray-900 placeholder-gray-600 font-medium"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-700 font-medium"
                   placeholder="Repita a senha"
                   minLength={4}
                   required
@@ -385,7 +385,7 @@ export default function CadastroEntregador() {
                   type="text"
                   value={placa}
                   onChange={handlePlacaChange}
-                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-white text-gray-900 placeholder-gray-600 font-medium uppercase"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-700 font-medium uppercase"
                   placeholder="ABC1D23"
                   maxLength={8}
                 />
@@ -437,14 +437,6 @@ export default function CadastroEntregador() {
                 </button>
               </p>
             </div>
-
-            <button
-              type="button"
-              onClick={() => router.push('/')}
-              className="w-full font-bold py-4 px-4 rounded-xl shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white"
-            >
-              ← Voltar
-            </button>
           </form>
 
           {/* Rodapé */}
