@@ -8,6 +8,7 @@ export default function Login() {
   const router = useRouter();
   const [nome, setNome] = useState('');
   const [senha, setSenha] = useState('');
+  const [mostrarSenha, setMostrarSenha] = useState(false);
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState('');
   const [statusSupabase, setStatusSupabase] = useState<'online' | 'offline'>('online');
@@ -127,7 +128,7 @@ export default function Login() {
                   type="text"
                   value={nome}
                   onChange={(e) => setNome(e.target.value)}
-                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-white text-gray-900 placeholder-gray-700 font-medium"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-white text-gray-900 placeholder-gray-300 placeholder:font-normal font-black"
                   placeholder="Digite seu nome completo"
                   required
                 />
@@ -142,14 +143,22 @@ export default function Login() {
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg">🔒</span>
                 <input
                   id="senha"
-                  type="password"
+                  type={mostrarSenha ? 'text' : 'password'}
                   value={senha}
                   onChange={(e) => setSenha(e.target.value)}
-                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-white text-gray-900 placeholder-gray-700 font-medium"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-12 py-3 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-white text-gray-900 placeholder-gray-300 placeholder:font-normal font-black"
                   placeholder="Digite sua senha"
                   minLength={4}
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setMostrarSenha(!mostrarSenha)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors duration-200 text-xl"
+                  title={mostrarSenha ? "Ocultar senha" : "Ver senha"}
+                >
+                  {mostrarSenha ? '👁️' : '🙈'}
+                </button>
               </div>
             </div>
 

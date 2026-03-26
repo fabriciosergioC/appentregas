@@ -15,6 +15,8 @@ export default function CadastroEstabelecimento() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
+  const [mostrarSenha, setMostrarSenha] = useState(false);
+  const [mostrarConfirmarSenha, setMostrarConfirmarSenha] = useState(false);
   const [nomeEstabelecimento, setNomeEstabelecimento] = useState('');
   const [telefone, setTelefone] = useState('');
   const [cnpj, setCnpj] = useState('');
@@ -231,7 +233,7 @@ export default function CadastroEstabelecimento() {
                   type="text"
                   value={nomeEstabelecimento}
                   onChange={(e) => setNomeEstabelecimento(e.target.value)}
-                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-700 font-medium"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-300 placeholder:font-normal font-black"
                   placeholder="Ex: Pizzaria do João"
                   required
                 />
@@ -249,7 +251,7 @@ export default function CadastroEstabelecimento() {
                   type="text"
                   value={nome}
                   onChange={(e) => setNome(e.target.value)}
-                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-700 font-medium"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-300 placeholder:font-normal font-black"
                   placeholder="Seu nome completo"
                   required
                 />
@@ -267,7 +269,7 @@ export default function CadastroEstabelecimento() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-700 font-medium"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-300 placeholder:font-normal font-black"
                   placeholder="seu@email.com"
                   required
                 />
@@ -285,7 +287,7 @@ export default function CadastroEstabelecimento() {
                   type="tel"
                   value={telefoneFormatado}
                   onChange={handleTelefoneChange}
-                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-700 font-medium"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-300 placeholder:font-normal font-black"
                   placeholder="(11) 99999-9999"
                   maxLength={15}
                   required
@@ -304,7 +306,7 @@ export default function CadastroEstabelecimento() {
                   type="text"
                   value={cnpjFormatado}
                   onChange={handleCnpjChange}
-                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-700 font-medium"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-300 placeholder:font-normal font-black"
                   placeholder="00.000.000/0000-00"
                   maxLength={19}
                 />
@@ -319,13 +321,21 @@ export default function CadastroEstabelecimento() {
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg">🔒</span>
                 <input
                   id="senha"
-                  type="password"
+                  type={mostrarSenha ? 'text' : 'password'}
                   value={senha}
                   onChange={(e) => setSenha(e.target.value)}
-                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-700 font-medium"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-12 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-300 placeholder:font-normal font-black"
                   placeholder="Mínimo 6 caracteres"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setMostrarSenha(!mostrarSenha)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors duration-200 text-xl"
+                  title={mostrarSenha ? "Ocultar senha" : "Ver senha"}
+                >
+                  {mostrarSenha ? '👁️' : '🙈'}
+                </button>
               </div>
             </div>
 
@@ -337,13 +347,21 @@ export default function CadastroEstabelecimento() {
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg">🔒</span>
                 <input
                   id="confirmarSenha"
-                  type="password"
+                  type={mostrarConfirmarSenha ? 'text' : 'password'}
                   value={confirmarSenha}
                   onChange={(e) => setConfirmarSenha(e.target.value)}
-                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-700 font-medium"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-12 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-300 placeholder:font-normal font-black"
                   placeholder="Repita a senha"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setMostrarConfirmarSenha(!mostrarConfirmarSenha)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors duration-200 text-xl"
+                  title={mostrarConfirmarSenha ? "Ocultar senha" : "Ver senha"}
+                >
+                  {mostrarConfirmarSenha ? '👁️' : '🙈'}
+                </button>
               </div>
             </div>
 

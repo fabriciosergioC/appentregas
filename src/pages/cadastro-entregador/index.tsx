@@ -15,6 +15,8 @@ export default function CadastroEntregador() {
   const [telefone, setTelefone] = useState('');
   const [senha, setSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
+  const [mostrarSenha, setMostrarSenha] = useState(false);
+  const [mostrarConfirmarSenha, setMostrarConfirmarSenha] = useState(false);
   const [placa, setPlaca] = useState('');
   const [fotoPerfil, setFotoPerfil] = useState<File | null>(null);
   const [fotoPreview, setFotoPreview] = useState<string | null>(null);
@@ -263,7 +265,7 @@ export default function CadastroEntregador() {
                   type="text"
                   value={nome}
                   onChange={(e) => setNome(e.target.value)}
-                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-700 font-medium"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-300 placeholder:font-normal font-black"
                   placeholder="Digite seu nome completo"
                   required
                 />
@@ -281,7 +283,7 @@ export default function CadastroEntregador() {
                   type="tel"
                   value={telefoneFormatado}
                   onChange={handleTelefoneChange}
-                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-700 font-medium"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-300 placeholder:font-normal font-black"
                   placeholder="(11) 99999-9999"
                   maxLength={15}
                   required
@@ -300,14 +302,22 @@ export default function CadastroEntregador() {
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg">🔒</span>
                 <input
                   id="senha"
-                  type="password"
+                  type={mostrarSenha ? 'text' : 'password'}
                   value={senha}
                   onChange={(e) => setSenha(e.target.value)}
-                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-700 font-medium"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-12 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-300 placeholder:font-normal font-black"
                   placeholder="Mínimo 4 caracteres"
                   minLength={4}
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setMostrarSenha(!mostrarSenha)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors duration-200 text-xl"
+                  title={mostrarSenha ? "Ocultar senha" : "Ver senha"}
+                >
+                  {mostrarSenha ? '👁️' : '🙈'}
+                </button>
               </div>
             </div>
 
@@ -319,14 +329,22 @@ export default function CadastroEntregador() {
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg">🔒</span>
                 <input
                   id="confirmarSenha"
-                  type="password"
+                  type={mostrarConfirmarSenha ? 'text' : 'password'}
                   value={confirmarSenha}
                   onChange={(e) => setConfirmarSenha(e.target.value)}
-                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-700 font-medium"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-12 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-300 placeholder:font-normal font-black"
                   placeholder="Repita a senha"
                   minLength={4}
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setMostrarConfirmarSenha(!mostrarConfirmarSenha)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors duration-200 text-xl"
+                  title={mostrarConfirmarSenha ? "Ocultar senha" : "Ver senha"}
+                >
+                  {mostrarConfirmarSenha ? '👁️' : '🙈'}
+                </button>
               </div>
             </div>
 
@@ -395,7 +413,7 @@ export default function CadastroEntregador() {
                   type="text"
                   value={placa}
                   onChange={handlePlacaChange}
-                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-700 font-medium uppercase"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-300 placeholder:font-normal font-black uppercase"
                   placeholder="ABC1D23"
                   maxLength={8}
                 />
