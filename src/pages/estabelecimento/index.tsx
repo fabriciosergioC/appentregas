@@ -79,73 +79,14 @@ export default function Estabelecimento() {
   const [pagamentos, setPagamentos] = useState<any[]>([]);
   const [carregandoPagamentos, setCarregandoPagamentos] = useState(false);
 
-  // Verificar se usuário está logado
+  // Verificar se usuário está logado - SEMPRE redireciona para login no primeiro acesso
   useEffect(() => {
     // Verificação apenas no lado do cliente
     if (typeof window === 'undefined') return;
 
-    const user = localStorage.getItem('estabelecimento_user');
-    console.log('🔐 Verificando autenticação - User:', user);
-
-    if (!user) {
-      console.log('❌ Usuário não autenticado, redirecionando para login...');
-      router.replace('/login-estabelecimento');
-      return;
-    }
-
-    try {
-      const userData = JSON.parse(user);
-      console.log('✅ Usuário autenticado:', userData);
-
-      setUsuarioLogado(userData);
-      setEstabelecimentoId(userData.id);
-
-      // Carregar nome do estabelecimento
-      const nomeSalvo = localStorage.getItem('nome_estabelecimento') || userData.nome_estabelecimento;
-      if (nomeSalvo) {
-        setNomeEstabelecimento(nomeSalvo);
-      }
-    } catch (error) {
-      console.error('❌ Erro ao parsear usuário:', error);
-      localStorage.removeItem('estabelecimento_user');
-      router.replace('/login-estabelecimento');
-    }
-  }, [router]);
-
-  // Timeout de inatividade - 1 minuto
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const TEMPO_INATIVIDADE_MS = 60 * 1000; // 1 minuto
-    let timeoutId: NodeJS.Timeout;
-
-    const resetarTimeout = () => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        console.log('⏰ Tempo de inatividade atingido, redirecionando para login...');
-        localStorage.removeItem('estabelecimento_user');
-        localStorage.removeItem('nome_estabelecimento');
-        router.replace('/login-estabelecimento');
-      }, TEMPO_INATIVIDADE_MS);
-    };
-
-    // Eventos que resetam o timeout
-    const eventos = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
-
-    eventos.forEach(evento => {
-      window.addEventListener(evento, resetarTimeout);
-    });
-
-    // Iniciar timeout
-    resetarTimeout();
-
-    // Limpar ao desmontar
-    return () => {
-      clearTimeout(timeoutId);
-      eventos.forEach(evento => {
-        window.removeEventListener(evento, resetarTimeout);
-      });
-    };
+    // Forçar redirecionamento imediato para login ao acessar a página
+    console.log('🔐 Acessou página de estabelecimento, redirecionando para login...');
+    router.replace('/login-estabelecimento');
   }, [router]);
 
   // Formatar valor em moeda enquanto digita
