@@ -118,11 +118,11 @@ export default function Estabelecimento() {
     setCarregando(false);
   }, [router]);
 
-  // Timeout de inatividade - 10 segundos
+  // Timeout de inatividade - 20 segundos
   useEffect(() => {
     if (typeof window === 'undefined' || !usuarioLogado) return;
 
-    const TEMPO_INATIVIDADE_MS = 10 * 1000; // 10 segundos
+    const TEMPO_INATIVIDADE_MS = 20 * 1000; // 20 segundos
     let timeoutId: NodeJS.Timeout;
 
     const resetarTimeout = () => {
