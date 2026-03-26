@@ -57,6 +57,9 @@ export default function Login() {
       console.log('📷 Foto URL:', dadosEntregador.foto_url);
       console.log('🏍️ Placa:', dadosEntregador.placa_moto);
 
+      // Limpar pedidos recusados ao logar novamente
+      localStorage.removeItem('pedidos_recusados');
+
       // Redirecionar para página de pedidos
       router.push('/pedidos');
     } catch (error) {

@@ -19,7 +19,13 @@ export default function Pedidos() {
   const [modalSaldoAberto, setModalSaldoAberto] = useState(false);
   const [temPedidoNovo, setTemPedidoNovo] = useState(false);
   const [audioSilenciadoManualmente, setAudioSilenciadoManualmente] = useState(false);
-  const [pedidosRecusados, setPedidosRecusados] = useState<Set<string>>(new Set());
+  const [pedidosRecusados, setPedidosRecusados] = useState<Set<string>>(() => {
+    if (typeof window !== 'undefined') {
+      const salvas = localStorage.getItem('pedidos_recusados');
+      return salvas ? new Set(JSON.parse(salvas)) : new Set();
+    }
+    return new Set();
+  });
   const pedidosRecusadosRef = useRef(pedidosRecusados);
 
   // Atualizar ref quando pedidosRecusados mudar
@@ -356,8 +362,12 @@ export default function Pedidos() {
         return;
       }
 
-      // Adicionar na lista de pedidos recusados
-      setPedidosRecusados((prev) => new Set(prev).add(pedidoId));
+      // Adicionar na lista de pedidos recusados e salvar no localStorage
+      setPedidosRecusados((prev) => {
+        const novoSet = new Set(prev).add(pedidoId);
+        localStorage.setItem('pedidos_recusados', JSON.stringify(Array.from(novoSet)));
+        return novoSet;
+      });
 
       // Remover da lista de disponíveis imediatamente
       setPedidosDisponiveis((prev) => {
@@ -427,6 +437,7 @@ export default function Pedidos() {
 
   const handleLogout = () => {
     localStorage.removeItem('entregador');
+    localStorage.removeItem('pedidos_recusados');
     router.push('/login');
   };
 
@@ -439,31 +450,33 @@ export default function Pedidos() {
       </Head>
 
       <div className="min-h-screen bg-gray-100">
-        {/* Aviso de som */}
-        <div className={`border-l-4 p-3 text-sm ${temPedidoNovo ? 'bg-red-100 border-red-500 text-red-700 animate-pulse' : audioEnabled ? 'bg-green-100 border-green-500 text-green-700' : 'bg-yellow-100 border-yellow-500 text-yellow-700'}`}>
-          <div className="flex items-center gap-2">
-            <span>🔔</span>
-            <span>
-              <strong>Som de notificação:</strong> {temPedidoNovo ? '🔊 NOVO PEDIDO! Som tocando até aceitar.' : audioEnabled ? 'Ativado! Você ouvirá um som repetitivo quando chegar novo pedido.' : 'Clique em qualquer lugar para ativar.'}
-            </span>
-            <button
-              onClick={handleAtivarSomManualmente}
-              className="ml-auto bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs font-medium focus:ring-2 focus:ring-green-400"
-            >
-              Testar Som
-            </button>
-            {temPedidoNovo && (
+        {/* Aviso de som - oculto a pedido */}
+        <div className="hidden">
+          <div className={`border-l-4 p-3 text-sm ${temPedidoNovo ? 'bg-red-100 border-red-500 text-red-700 animate-pulse' : audioEnabled ? 'bg-green-100 border-green-500 text-green-700' : 'bg-yellow-100 border-yellow-500 text-yellow-700'}`}>
+            <div className="flex items-center gap-2">
+              <span>🔔</span>
+              <span>
+                <strong>Som de notificação:</strong> {temPedidoNovo ? '🔊 NOVO PEDIDO! Som tocando até aceitar.' : audioEnabled ? 'Ativado! Você ouvirá um som repetitivo quando chegar novo pedido.' : 'Clique em qualquer lugar para ativar.'}
+              </span>
               <button
-                onClick={() => { 
-                  pararSom(); 
-                  setTemPedidoNovo(false); 
-                  setAudioSilenciadoManualmente(true);
-                }}
-                className="ml-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs font-medium focus:ring-2 focus:ring-red-400"
+                onClick={handleAtivarSomManualmente}
+                className="ml-auto bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs font-medium focus:ring-2 focus:ring-green-400"
               >
-                Silenciar
+                Testar Som
               </button>
-            )}
+              {temPedidoNovo && (
+                <button
+                  onClick={() => { 
+                    pararSom(); 
+                    setTemPedidoNovo(false); 
+                    setAudioSilenciadoManualmente(true);
+                  }}
+                  className="ml-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs font-medium focus:ring-2 focus:ring-red-400"
+                >
+                  Silenciar
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
