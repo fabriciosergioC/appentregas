@@ -78,57 +78,39 @@ export default function Estabelecimento() {
   const [modalPagamentoAberto, setModalPagamentoAberto] = useState(false);
   const [pagamentos, setPagamentos] = useState<any[]>([]);
   const [carregandoPagamentos, setCarregandoPagamentos] = useState(false);
-  const [verificandoAuth, setVerificandoAuth] = useState(true);
 
   // Verificar se usuário está logado
   useEffect(() => {
-    const verificarAutenticacao = async () => {
-      // Aguardar próximo tick para garantir que localStorage está disponível
-      await new Promise(resolve => setTimeout(resolve, 0));
-      
-      try {
-        const user = localStorage.getItem('estabelecimento_user');
-        console.log('🔐 Verificando autenticação - User:', user);
-        
-        if (!user) {
-          console.log('❌ Usuário não autenticado, redirecionando...');
-          window.location.href = '/login-estabelecimento';
-          return;
-        }
-        
-        const userData = JSON.parse(user);
-        console.log('✅ Usuário autenticado:', userData);
-        
-        setUsuarioLogado(userData);
-        setEstabelecimentoId(userData.id);
+    // Verificação apenas no lado do cliente
+    if (typeof window === 'undefined') return;
 
-        // Carregar nome do estabelecimento
-        const nomeSalvo = localStorage.getItem('nome_estabelecimento') || userData.nome_estabelecimento;
-        if (nomeSalvo) {
-          setNomeEstabelecimento(nomeSalvo);
-        }
-      } catch (error) {
-        console.error('❌ Erro ao parsear usuário:', error);
-        window.location.href = '/login-estabelecimento';
-      } finally {
-        setVerificandoAuth(false);
+    const user = localStorage.getItem('estabelecimento_user');
+    console.log('🔐 Verificando autenticação - User:', user);
+
+    if (!user) {
+      console.log('❌ Usuário não autenticado, redirecionando para login...');
+      router.replace('/login-estabelecimento');
+      return;
+    }
+
+    try {
+      const userData = JSON.parse(user);
+      console.log('✅ Usuário autenticado:', userData);
+
+      setUsuarioLogado(userData);
+      setEstabelecimentoId(userData.id);
+
+      // Carregar nome do estabelecimento
+      const nomeSalvo = localStorage.getItem('nome_estabelecimento') || userData.nome_estabelecimento;
+      if (nomeSalvo) {
+        setNomeEstabelecimento(nomeSalvo);
       }
-    };
-
-    verificarAutenticacao();
-  }, []);
-
-  // Mostrar tela de loading enquanto verifica autenticação
-  if (verificandoAuth) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600 font-medium">Carregando...</p>
-        </div>
-      </div>
-    );
-  }
+    } catch (error) {
+      console.error('❌ Erro ao parsear usuário:', error);
+      localStorage.removeItem('estabelecimento_user');
+      router.replace('/login-estabelecimento');
+    }
+  }, [router]);
 
   // Formatar valor em moeda enquanto digita
   const handleValorPedidoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
