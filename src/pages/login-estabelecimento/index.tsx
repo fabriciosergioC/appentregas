@@ -76,13 +76,16 @@ export default function LoginEstabelecimento() {
       // Salvar nome do estabelecimento separadamente para o painel
       localStorage.setItem('nome_estabelecimento', estabelecimento.nome_estabelecimento);
 
-      console.log('💾 Dados salvos:', { 
+      console.log('💾 Dados salvos:', {
         nome_estabelecimento: estabelecimento.nome_estabelecimento,
-        email: estabelecimento.email 
+        email: estabelecimento.email
       });
 
-      // Redirecionar para página do estabelecimento
-      router.push('/estabelecimento');
+      // Aguardar próximo tick para garantir que localStorage foi salvo
+      setTimeout(() => {
+        console.log('🔄 Redirecionando para estabelecimento...');
+        window.location.href = '/estabelecimento';
+      }, 100);
     } catch (error) {
       console.error('❌ Erro no login:', error);
 

@@ -79,14 +79,37 @@ export default function Estabelecimento() {
   const [pagamentos, setPagamentos] = useState<any[]>([]);
   const [carregandoPagamentos, setCarregandoPagamentos] = useState(false);
 
-  // Verificar se usuário está logado - SEMPRE redireciona para login no primeiro acesso
+  // Verificar se usuário está logado
   useEffect(() => {
     // Verificação apenas no lado do cliente
     if (typeof window === 'undefined') return;
 
-    // Forçar redirecionamento imediato para login ao acessar a página
-    console.log('🔐 Acessou página de estabelecimento, redirecionando para login...');
-    router.replace('/login-estabelecimento');
+    const user = localStorage.getItem('estabelecimento_user');
+    console.log('🔐 Verificando autenticação - User:', user);
+
+    if (!user) {
+      console.log('❌ Usuário não autenticado, redirecionando para login...');
+      router.replace('/login-estabelecimento');
+      return;
+    }
+
+    try {
+      const userData = JSON.parse(user);
+      console.log('✅ Usuário autenticado:', userData);
+
+      setUsuarioLogado(userData);
+      setEstabelecimentoId(userData.id);
+
+      // Carregar nome do estabelecimento
+      const nomeSalvo = localStorage.getItem('nome_estabelecimento') || userData.nome_estabelecimento;
+      if (nomeSalvo) {
+        setNomeEstabelecimento(nomeSalvo);
+      }
+    } catch (error) {
+      console.error('❌ Erro ao parsear usuário:', error);
+      localStorage.removeItem('estabelecimento_user');
+      router.replace('/login-estabelecimento');
+    }
   }, [router]);
 
   // Formatar valor em moeda enquanto digita
