@@ -291,17 +291,20 @@ export default function CadastroProduto() {
 
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
-        <header className="bg-green-600 text-white p-4 shadow-md">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-xl font-bold">🛍️ Cadastro de Produtos</h1>
-              {usuarioLogado && (
-                <p className="text-xs text-green-200">🏪 {usuarioLogado.nome_estabelecimento}</p>
-              )}
+        <header className="bg-green-600 text-white p-4 shadow-md sticky top-0 z-50">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 max-w-4xl mx-auto">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">🛍️</span>
+              <div>
+                <h1 className="text-xl font-bold">Cadastro de Produtos</h1>
+                {usuarioLogado && (
+                  <p className="text-xs text-green-200">🏪 {usuarioLogado.nome_estabelecimento}</p>
+                )}
+              </div>
             </div>
             <button
               onClick={() => router.push('/estabelecimento')}
-              className="bg-green-700 hover:bg-green-800 text-white font-medium py-2 px-4 rounded-lg transition-all text-sm"
+              className="bg-green-700 hover:bg-green-800 text-white font-medium py-2 px-4 rounded-lg transition-all text-sm w-full sm:w-auto text-center"
             >
               ← Voltar ao Painel
             </button>
@@ -326,7 +329,7 @@ export default function CadastroProduto() {
                   value={nomeProduto}
                   onChange={(e) => setNomeProduto(e.target.value)}
                   placeholder="Ex: Pizza Calabresa"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:outline-none bg-white text-gray-900 placeholder-gray-300 placeholder:font-normal font-black"
                 />
               </div>
 
@@ -339,11 +342,11 @@ export default function CadastroProduto() {
                   onChange={(e) => setDescricao(e.target.value)}
                   placeholder="Ex: Pizza grande com calabresa, cebola e queijo"
                   rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:outline-none bg-white text-gray-900 placeholder-gray-300 placeholder:font-normal font-black"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     💰 Preço *
@@ -353,7 +356,7 @@ export default function CadastroProduto() {
                     value={precoFormatado}
                     onChange={handlePrecoChange}
                     placeholder="R$ 0,00"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:outline-none bg-white text-gray-900 placeholder-gray-300 placeholder:font-normal font-black text-lg"
                   />
                 </div>
 
@@ -366,7 +369,7 @@ export default function CadastroProduto() {
                     value={categoria}
                     onChange={(e) => setCategoria(e.target.value)}
                     placeholder="Ex: Pizzas, Bebidas..."
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:outline-none bg-white text-gray-900 placeholder-gray-300 placeholder:font-normal font-black"
                   />
                 </div>
               </div>
@@ -444,13 +447,13 @@ export default function CadastroProduto() {
               <button
                 type="submit"
                 disabled={loading}
-                className={`w-full py-3 rounded-lg font-medium text-white transition-colors ${
+                className={`w-full py-4 rounded-xl font-bold text-white shadow-lg transform transition-all active:scale-95 ${
                   loading
-                    ? 'bg-green-400 cursor-not-allowed'
-                    : 'bg-green-600 hover:bg-green-700'
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700'
                 }`}
               >
-                {loading ? 'Cadastrando...' : '✅ Cadastrar Produto'}
+                {loading ? '⏳ Cadastrando...' : '✅ Cadastrar Produto'}
               </button>
             </form>
           </section>
@@ -470,7 +473,7 @@ export default function CadastroProduto() {
                 value={filtro}
                 onChange={(e) => setFiltro(e.target.value)}
                 placeholder="🔍 Buscar produto..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:outline-none bg-white text-gray-900 placeholder-gray-300 placeholder:font-normal font-black"
               />
             </div>
 
@@ -486,58 +489,63 @@ export default function CadastroProduto() {
                 {produtosFiltrados.map((produto) => (
                   <div
                     key={produto.id}
-                    className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                    className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow bg-white"
                   >
-                    <div className="flex gap-4">
+                    <div className="flex flex-col sm:flex-row gap-4">
                       {produto.imagem_url ? (
                         <img
                           src={produto.imagem_url}
                           alt={produto.nome}
-                          className="w-24 h-24 object-cover rounded-lg flex-shrink-0 border border-gray-200"
+                          className="w-full sm:w-24 h-48 sm:h-24 object-cover rounded-lg flex-shrink-0 border border-gray-100"
                         />
                       ) : (
-                        <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 border border-gray-200">
-                          <span className="text-4xl">📦</span>
+                        <div className="w-full sm:w-24 h-32 sm:h-24 bg-gray-50 rounded-lg flex items-center justify-center flex-shrink-0 border border-gray-100">
+                          <span className="text-4xl text-gray-300">📦</span>
                         </div>
                       )}
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-bold text-gray-800">{produto.nome}</h3>
+                      
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                          <h3 className="font-bold text-gray-800 text-lg sm:text-base truncate">{produto.nome}</h3>
                           {produto.disponivel ? (
-                            <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full font-medium">
-                              ✅ Disponível
+                            <span className="px-2 py-0.5 bg-green-100 text-green-700 text-[10px] uppercase tracking-wider rounded-full font-bold">
+                              Ativo
                             </span>
                           ) : (
-                            <span className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full font-medium">
-                              ❌ Indisponível
+                            <span className="px-2 py-0.5 bg-red-100 text-red-700 text-[10px] uppercase tracking-wider rounded-full font-bold">
+                              Pausado
                             </span>
                           )}
                         </div>
                         {produto.descricao && (
-                          <p className="text-sm text-gray-600 mb-1">{produto.descricao}</p>
+                          <p className="text-sm text-gray-600 mb-2 line-clamp-2">{produto.descricao}</p>
                         )}
-                        {produto.categoria && (
-                          <p className="text-xs text-gray-500 mb-1">🏷️ {produto.categoria}</p>
-                        )}
-                        <p className="text-lg font-bold text-green-600">
-                          {produto.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                        </p>
+                        <div className="flex items-center justify-between sm:justify-start gap-4 mt-auto">
+                          <p className="text-xl font-black text-green-600">
+                            {produto.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                          </p>
+                          {produto.categoria && (
+                            <span className="text-xs font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded">
+                              🏷️ {produto.categoria}
+                            </span>
+                          )}
+                        </div>
                       </div>
 
-                      <div className="flex gap-2">
+                      <div className="flex sm:flex-col gap-2 pt-3 sm:pt-0 sm:justify-center border-t sm:border-t-0 border-gray-100 sm:pl-4">
                         <button
                           onClick={() => handleAtualizarProduto(produto.id, { disponivel: !produto.disponivel })}
-                          className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          className={`flex-1 sm:flex-initial px-4 py-2 rounded-lg text-xs font-bold transition-all active:scale-95 ${
                             produto.disponivel
-                              ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-                              : 'bg-green-100 text-green-700 hover:bg-green-200'
+                              ? 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100 border border-yellow-200'
+                              : 'bg-green-50 text-green-700 hover:bg-green-100 border border-green-200'
                           }`}
                         >
                           {produto.disponivel ? '⏸️ Pausar' : '▶️ Ativar'}
                         </button>
                         <button
                           onClick={() => handleExcluirProduto(produto.id)}
-                          className="px-3 py-2 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors"
+                          className="flex-1 sm:flex-initial px-4 py-2 bg-red-50 text-red-700 rounded-lg text-xs font-bold hover:bg-red-100 border border-red-200 transition-all active:scale-95"
                         >
                           🗑️ Excluir
                         </button>
