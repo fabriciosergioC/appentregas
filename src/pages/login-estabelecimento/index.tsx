@@ -39,6 +39,18 @@ export default function LoginEstabelecimento() {
       return;
     }
 
+    // Verificar lista de bloqueio de estabelecimentos
+    const listaBloqueio = localStorage.getItem('estabelecimentos_bloqueados');
+    const estabelecimentosBloqueados = listaBloqueio ? JSON.parse(listaBloqueio) : [];
+    const emailNormalizado = email.toLowerCase().trim();
+    
+    if (estabelecimentosBloqueados.includes(emailNormalizado)) {
+      setErro('🚫 Acesso bloqueado.\n\nEste estabelecimento foi bloqueado pelo administrador.\n\nEntre em contato para mais informações.');
+      setLoading(false);
+      console.log('🚫 Tentativa de login de estabelecimento bloqueado:', email);
+      return;
+    }
+
     try {
       console.log('📝 Tentando login...', { email });
 
