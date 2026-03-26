@@ -324,26 +324,32 @@ export default function CadastroProduto() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Nome do Produto *
                 </label>
-                <input
-                  type="text"
-                  value={nomeProduto}
-                  onChange={(e) => setNomeProduto(e.target.value)}
-                  placeholder="Ex: Pizza Calabresa"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:outline-none bg-white text-gray-900 placeholder-gray-300 placeholder:font-normal font-black"
-                />
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">🍔</span>
+                  <input
+                    type="text"
+                    value={nomeProduto}
+                    onChange={(e) => setNomeProduto(e.target.value)}
+                    placeholder="Ex: Pizza Calabresa"
+                    className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-200 focus:border-green-500 focus:outline-none bg-white text-gray-900 placeholder-gray-400 placeholder:font-normal font-black transition-all"
+                  />
+                </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Descrição
                 </label>
-                <textarea
-                  value={descricao}
-                  onChange={(e) => setDescricao(e.target.value)}
-                  placeholder="Ex: Pizza grande com calabresa, cebola e queijo"
-                  rows={3}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:outline-none bg-white text-gray-900 placeholder-gray-300 placeholder:font-normal font-black"
-                />
+                <div className="relative">
+                  <span className="absolute left-3 top-4 text-gray-400 text-lg">📝</span>
+                  <textarea
+                    value={descricao}
+                    onChange={(e) => setDescricao(e.target.value)}
+                    placeholder="Ex: Pizza grande com calabresa, cebola e queijo"
+                    rows={3}
+                    className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-200 focus:border-green-500 focus:outline-none bg-white text-gray-900 placeholder-gray-400 placeholder:font-normal font-black transition-all"
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -351,26 +357,32 @@ export default function CadastroProduto() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     💰 Preço *
                   </label>
-                  <input
-                    type="text"
-                    value={precoFormatado}
-                    onChange={handlePrecoChange}
-                    placeholder="R$ 0,00"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:outline-none bg-white text-gray-900 placeholder-gray-300 placeholder:font-normal font-black text-lg"
-                  />
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">💰</span>
+                    <input
+                      type="text"
+                      value={precoFormatado}
+                      onChange={handlePrecoChange}
+                      placeholder="R$ 0,00"
+                      className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-200 focus:border-green-500 focus:outline-none bg-white text-gray-900 placeholder-gray-400 placeholder:font-normal font-black text-xl transition-all"
+                    />
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     🏷️ Categoria
                   </label>
-                  <input
-                    type="text"
-                    value={categoria}
-                    onChange={(e) => setCategoria(e.target.value)}
-                    placeholder="Ex: Pizzas, Bebidas..."
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:outline-none bg-white text-gray-900 placeholder-gray-300 placeholder:font-normal font-black"
-                  />
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">🏷️</span>
+                    <input
+                      type="text"
+                      value={categoria}
+                      onChange={(e) => setCategoria(e.target.value)}
+                      placeholder="Ex: Pizzas, Bebidas..."
+                      className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-200 focus:border-green-500 focus:outline-none bg-white text-gray-900 placeholder-gray-400 placeholder:font-normal font-black transition-all"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -468,13 +480,16 @@ export default function CadastroProduto() {
 
             {/* Filtro */}
             <div className="mb-4">
-              <input
-                type="text"
-                value={filtro}
-                onChange={(e) => setFiltro(e.target.value)}
-                placeholder="🔍 Buscar produto..."
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:outline-none bg-white text-gray-900 placeholder-gray-300 placeholder:font-normal font-black"
-              />
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">🔍</span>
+                <input
+                  type="text"
+                  value={filtro}
+                  onChange={(e) => setFiltro(e.target.value)}
+                  placeholder="Buscar produto..."
+                  className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-200 focus:border-green-500 focus:outline-none bg-white text-gray-900 placeholder-gray-400 placeholder:font-normal font-black transition-all"
+                />
+              </div>
             </div>
 
             {produtosFiltrados.length === 0 ? (

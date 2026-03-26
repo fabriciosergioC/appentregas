@@ -710,84 +710,102 @@ export default function Estabelecimento() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Nome do Estabelecimento
                 </label>
-                <input
-                  type="text"
-                  value={nomeEstabelecimento}
-                  onChange={(e) => handleSalvarNomeEstabelecimento(e.target.value)}
-                  placeholder="Ex: Pizzaria do Jaime"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">🏪</span>
+                  <input
+                    type="text"
+                    value={nomeEstabelecimento}
+                    onChange={(e) => handleSalvarNomeEstabelecimento(e.target.value)}
+                    placeholder="Ex: Pizzaria do Jaime"
+                    className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-200 focus:border-blue-500 focus:outline-none bg-white text-gray-900 placeholder-gray-400 placeholder:font-normal font-black transition-all"
+                  />
+                </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   📍 Endereço do Estabelecimento
                 </label>
-                <input
-                  type="text"
-                  value={enderecoEstabelecimento}
-                  onChange={(e) => handleSalvarEnderecoEstabelecimento(e.target.value)}
-                  placeholder="Ex: Rua das Flores, 123 - Centro"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">📍</span>
+                  <input
+                    type="text"
+                    value={enderecoEstabelecimento}
+                    onChange={(e) => handleSalvarEnderecoEstabelecimento(e.target.value)}
+                    placeholder="Ex: Rua das Flores, 123 - Centro"
+                    className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-200 focus:border-blue-500 focus:outline-none bg-white text-gray-900 placeholder-gray-400 placeholder:font-normal font-black transition-all"
+                  />
+                </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Nome do Cliente
                 </label>
-                <input
-                  type="text"
-                  value={cliente}
-                  onChange={(e) => setCliente(e.target.value)}
-                  placeholder="Ex: João Silva"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">👤</span>
+                  <input
+                    type="text"
+                    value={cliente}
+                    onChange={(e) => setCliente(e.target.value)}
+                    placeholder="Ex: João Silva"
+                    className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-200 focus:border-blue-500 focus:outline-none bg-white text-gray-900 placeholder-gray-400 placeholder:font-normal font-black transition-all"
+                  />
+                </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Endereço de Entrega
                 </label>
-                <input
-                  type="text"
-                  value={endereco}
-                  onChange={(e) => setEndereco(e.target.value)}
-                  placeholder="Ex: Rua das Flores, 123 - Centro"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">🏠</span>
+                  <input
+                    type="text"
+                    value={endereco}
+                    onChange={(e) => setEndereco(e.target.value)}
+                    placeholder="Ex: Rua das Flores, 123 - Centro"
+                    className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-200 focus:border-blue-500 focus:outline-none bg-white text-gray-900 placeholder-gray-400 placeholder:font-normal font-black transition-all"
+                  />
+                </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   💳 Forma de Pagamento
                 </label>
-                <select
-                  value={formaPagamento}
-                  onChange={(e) => setFormaPagamento(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-                >
-                  <option value="">Selecione a forma de pagamento (Opcional)</option>
-                  <option value="Dinheiro">Dinheiro</option>
-                  <option value="PIX">PIX</option>
-                  <option value="Cartão de Crédito">Cartão de Crédito</option>
-                  <option value="Cartão de Débito">Cartão de Débito</option>
-                  <option value="Maquininha na Entrega">Maquininha na Entrega</option>
-                  <option value="Pago no App/Site">Já Pago no App/Site</option>
-                </select>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">💳</span>
+                  <select
+                    value={formaPagamento}
+                    onChange={(e) => setFormaPagamento(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-200 focus:border-blue-500 focus:outline-none bg-white text-gray-900 placeholder-gray-400 placeholder:font-normal font-black transition-all appearance-none"
+                  >
+                    <option value="">Selecione a forma de pagamento (Opcional)</option>
+                    <option value="Dinheiro">Dinheiro</option>
+                    <option value="PIX">PIX</option>
+                    <option value="Cartão de Crédito">Cartão de Crédito</option>
+                    <option value="Cartão de Débito">Cartão de Débito</option>
+                    <option value="Maquininha na Entrega">Maquininha na Entrega</option>
+                    <option value="Pago no App/Site">Já Pago no App/Site</option>
+                  </select>
+                </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Itens do Pedido
                 </label>
-                <textarea
-                  value={itens}
-                  onChange={(e) => setItens(e.target.value)}
-                  placeholder="Digite cada item em uma linha&#10;Ex: Pizza Grande&#10;Refrigerante 2L"
-                  rows={4}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+                <div className="relative">
+                  <span className="absolute left-3 top-4 text-gray-400 text-lg">📦</span>
+                  <textarea
+                    value={itens}
+                    onChange={(e) => setItens(e.target.value)}
+                    placeholder="Digite cada item em uma linha&#10;Ex: Pizza Grande&#10;Refrigerante 2L"
+                    rows={4}
+                    className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-200 focus:border-blue-500 focus:outline-none bg-white text-gray-900 placeholder-gray-400 placeholder:font-normal font-black transition-all"
+                  />
+                </div>
                 <p className="text-xs text-gray-500 mt-1">Digite cada item em uma linha separada</p>
               </div>
 
@@ -796,26 +814,32 @@ export default function Estabelecimento() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     💰 Valor do Pedido
                   </label>
-                  <input
-                    type="text"
-                    value={valorPedidoFormatado}
-                    onChange={handleValorPedidoChange}
-                    placeholder="R$ 0,00"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">💰</span>
+                    <input
+                      type="text"
+                      value={valorPedidoFormatado}
+                      onChange={handleValorPedidoChange}
+                      placeholder="R$ 0,00"
+                      className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-200 focus:border-blue-500 focus:outline-none bg-white text-gray-900 placeholder-gray-400 placeholder:font-normal font-black text-lg transition-all"
+                    />
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     🛵 Valor do Entregador
                   </label>
-                  <input
-                    type="text"
-                    value={valorEntregadorFormatado}
-                    onChange={handleValorEntregadorChange}
-                    placeholder="R$ 0,00"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">🤝</span>
+                    <input
+                      type="text"
+                      value={valorEntregadorFormatado}
+                      onChange={handleValorEntregadorChange}
+                      placeholder="R$ 0,00"
+                      className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-200 focus:border-blue-500 focus:outline-none bg-white text-gray-900 placeholder-gray-400 placeholder:font-normal font-black text-lg transition-all"
+                    />
+                  </div>
                 </div>
               </div>
 
