@@ -42,6 +42,17 @@ export default function Login() {
       return;
     }
 
+    // Verificar lista de bloqueio
+    const listaBloqueio = localStorage.getItem('entregadores_bloqueados');
+    const entregadoresBloqueados = listaBloqueio ? JSON.parse(listaBloqueio) : [];
+    
+    if (entregadoresBloqueados.includes(nome.toLowerCase().trim())) {
+      setErro('🚫 Acesso bloqueado.\n\nEste usuário foi bloqueado pelo administrador.\n\nEntre em contato para mais informações.');
+      setLoading(false);
+      console.log('🚫 Tentativa de login de usuário bloqueado:', nome);
+      return;
+    }
+
     try {
       console.log('📝 Tentando login...', { nome, senha: '***' });
 
