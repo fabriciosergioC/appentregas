@@ -155,7 +155,7 @@ export default function LoginEstabelecimento() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-white text-gray-900 placeholder-gray-400 placeholder:font-normal font-black"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 bg-white text-gray-900 placeholder-gray-300 placeholder:font-normal font-black"
                   placeholder="seu@email.com"
                   required
                 />
@@ -173,7 +173,7 @@ export default function LoginEstabelecimento() {
                   type={mostrarSenha ? 'text' : 'password'}
                   value={senha}
                   onChange={(e) => setSenha(e.target.value)}
-                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-12 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-400 placeholder:font-normal font-black"
+                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-12 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-300 placeholder:font-normal font-black"
                   placeholder="••••••••"
                   required
                 />
