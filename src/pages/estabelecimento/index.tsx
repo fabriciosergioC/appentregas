@@ -118,18 +118,6 @@ export default function Estabelecimento() {
     setCarregando(false);
   }, [router]);
 
-  // Mostrar tela de loading enquanto verifica autenticação
-  if (carregando) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600 font-medium">Verificando autenticação...</p>
-        </div>
-      </div>
-    );
-  }
-
   // Formatar valor em moeda enquanto digita
   const handleValorPedidoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let valor = e.target.value.replace(/\D/g, '');
@@ -544,11 +532,11 @@ export default function Estabelecimento() {
 
   return (
     <>
-      {!usuarioLogado ? (
+      {carregando || !usuarioLogado ? (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin text-6xl mb-4">🔄</div>
-            <p className="text-gray-600">Verificando login...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600 font-medium">Verificando autenticação...</p>
           </div>
         </div>
       ) : (
