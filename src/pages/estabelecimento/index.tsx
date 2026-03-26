@@ -81,20 +81,31 @@ export default function Estabelecimento() {
 
   // Verificar se usuário está logado
   useEffect(() => {
-    const user = localStorage.getItem('estabelecimento_user');
-    if (!user) {
-      router.push('/login-estabelecimento');
-      return;
-    }
-    const userData = JSON.parse(user);
-    setUsuarioLogado(userData);
-    setEstabelecimentoId(userData.id);
+    const verificarAutenticacao = () => {
+      const user = localStorage.getItem('estabelecimento_user');
+      if (!user) {
+        window.location.href = '/login-estabelecimento';
+        return false;
+      }
+      try {
+        const userData = JSON.parse(user);
+        setUsuarioLogado(userData);
+        setEstabelecimentoId(userData.id);
 
-    // Carregar nome do estabelecimento
-    const nomeSalvo = localStorage.getItem('nome_estabelecimento') || userData.nome_estabelecimento;
-    if (nomeSalvo) {
-      setNomeEstabelecimento(nomeSalvo);
-    }
+        // Carregar nome do estabelecimento
+        const nomeSalvo = localStorage.getItem('nome_estabelecimento') || userData.nome_estabelecimento;
+        if (nomeSalvo) {
+          setNomeEstabelecimento(nomeSalvo);
+        }
+      } catch (error) {
+        console.error('Erro ao parsear usuário:', error);
+        window.location.href = '/login-estabelecimento';
+        return false;
+      }
+      return true;
+    };
+
+    verificarAutenticacao();
   }, []);
 
   // Formatar valor em moeda enquanto digita
