@@ -78,14 +78,17 @@ export default function Estabelecimento() {
   const [modalPagamentoAberto, setModalPagamentoAberto] = useState(false);
   const [pagamentos, setPagamentos] = useState<any[]>([]);
   const [carregandoPagamentos, setCarregandoPagamentos] = useState(false);
+  const [carregando, setCarregando] = useState(true);
 
   // Verificar se usuário está logado
   useEffect(() => {
     // Verificação apenas no lado do cliente
     if (typeof window === 'undefined') return;
 
+    console.log('🔐 Verificando autenticação...');
+    
     const user = localStorage.getItem('estabelecimento_user');
-    console.log('🔐 Verificando autenticação - User:', user);
+    console.log('📦 Conteúdo do localStorage:', user);
 
     if (!user) {
       console.log('❌ Usuário não autenticado, redirecionando para login...');
@@ -109,8 +112,23 @@ export default function Estabelecimento() {
       console.error('❌ Erro ao parsear usuário:', error);
       localStorage.removeItem('estabelecimento_user');
       router.replace('/login-estabelecimento');
+      return;
     }
+
+    setCarregando(false);
   }, [router]);
+
+  // Mostrar tela de loading enquanto verifica autenticação
+  if (carregando) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600 font-medium">Verificando autenticação...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Formatar valor em moeda enquanto digita
   const handleValorPedidoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
