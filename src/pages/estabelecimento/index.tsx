@@ -112,6 +112,42 @@ export default function Estabelecimento() {
     }
   }, [router]);
 
+  // Timeout de inatividade - 1 minuto
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const TEMPO_INATIVIDADE_MS = 60 * 1000; // 1 minuto
+    let timeoutId: NodeJS.Timeout;
+
+    const resetarTimeout = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        console.log('⏰ Tempo de inatividade atingido, redirecionando para login...');
+        localStorage.removeItem('estabelecimento_user');
+        localStorage.removeItem('nome_estabelecimento');
+        router.replace('/login-estabelecimento');
+      }, TEMPO_INATIVIDADE_MS);
+    };
+
+    // Eventos que resetam o timeout
+    const eventos = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+
+    eventos.forEach(evento => {
+      window.addEventListener(evento, resetarTimeout);
+    });
+
+    // Iniciar timeout
+    resetarTimeout();
+
+    // Limpar ao desmontar
+    return () => {
+      clearTimeout(timeoutId);
+      eventos.forEach(evento => {
+        window.removeEventListener(evento, resetarTimeout);
+      });
+    };
+  }, [router]);
+
   // Formatar valor em moeda enquanto digita
   const handleValorPedidoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let valor = e.target.value.replace(/\D/g, '');
