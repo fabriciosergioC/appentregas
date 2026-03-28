@@ -12,7 +12,9 @@
       "Bash(rmdir *)",
       "Bash(git checkout *)",
       "Bash(git init)",
-      "Bash(git remote *)"
+      "Bash(git remote *)",
+      "Bash(git config *)",
+      "Bash(git fetch *)"
     ]
   },
   "$version": 3

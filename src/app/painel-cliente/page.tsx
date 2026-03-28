@@ -29,6 +29,9 @@ export default function PainelClientePage() {
   const [estabelecimentos, setEstabelecimentos] = useState<Estabelecimento[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState('');
+  const [mostrarHistorico, setMostrarHistorico] = useState(false);
+  const [historicoPedidos, setHistoricoPedidos] = useState<any[]>([]);
+  const [loadingHistorico, setLoadingHistorico] = useState(false);
 
   // Verificar se vem um ID pela URL (parâmetro ?id=)
   useEffect(() => {
@@ -94,6 +97,44 @@ export default function PainelClientePage() {
     estab.nome_responsavel.toLowerCase().includes(filtro.toLowerCase())
   );
 
+  // Carregar histórico de pedidos
+  const carregarHistorico = async () => {
+    setLoadingHistorico(true);
+    try {
+      // Carregar todos os pedidos concluídos ou cancelados
+      const { data, error } = await supabase
+        .from('fila_pedidos')
+        .select(`
+          *,
+          estabelecimento:estabelecimentos!estabelecimento_id (
+            nome_estabelecimento
+          )
+        `)
+        .in('status', ['entregue', 'cancelado'])
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+      
+      // Filtrar apenas pedidos que têm telefone_cliente (feitos pelo cliente)
+      // Isso diferencia pedidos feitos pelo estabelecimento manualmente
+      const pedidosCliente = (data || []).filter(pedido => pedido.telefone_cliente);
+      
+      setHistoricoPedidos(pedidosCliente);
+    } catch (err) {
+      console.error('Erro ao carregar histórico:', err);
+    } finally {
+      setLoadingHistorico(false);
+    }
+  };
+
+  // Carregar histórico quando abrir o modal
+  useEffect(() => {
+    if (mostrarHistorico) {
+      carregarHistorico();
+    }
+  }, [mostrarHistorico]);
+
   return (
     <div className="bg-animated-red">
       {/* Círculos decorativos */}
@@ -111,9 +152,16 @@ export default function PainelClientePage() {
             <h1 className="page-title-white">
               Acompanhe seu Pedido
             </h1>
-            <p className="page-subtitle-white">
-              Digite o ID do pedido ou escolha um estabelecimento
-            </p>
+
+            {/* Botão de Histórico */}
+            <div className="mt-4">
+              <button
+                onClick={() => setMostrarHistorico(true)}
+                className="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white font-bold py-3 px-6 rounded-xl transition-all duration-200 flex items-center gap-2 mx-auto shadow-lg"
+              >
+                📜 Meu Histórico de Pedidos
+              </button>
+            </div>
 
             {/* Busca de Estabelecimentos */}
             <div className="max-w-md mx-auto mb-4 mt-6">
@@ -122,7 +170,7 @@ export default function PainelClientePage() {
                   type="text"
                   value={filtro}
                   onChange={(e) => setFiltro(e.target.value)}
-                  placeholder="🔍 Buscar estabelecimento..."
+                  placeholder="Buscar estabelecimento..."
                   className="animated-input animated-input-red w-full"
                 />
                 <span className="input-icon">🔍</span>
@@ -244,28 +292,128 @@ export default function PainelClientePage() {
             </div>
           </div>
 
-          {/* Funcionalidades */}
-          <div className="card-animated card-animated-red mb-8">
-            <h3 className="page-subtitle-white" style={{ marginBottom: '1rem', textAlign: 'center' }}>O que você pode acompanhar:</h3>
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">🗺️</span>
-                <span className="page-subtitle-white" style={{ margin: 0, textAlign: 'left' }}>Localização do entregador em tempo real</span>
+        {/* Modal de Histórico de Pedidos */}
+        {mostrarHistorico && (
+          <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[100] p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto my-8">
+              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+                <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                  📜 Histórico de Pedidos
+                </h3>
+                <button
+                  onClick={() => setMostrarHistorico(false)}
+                  className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+                >
+                  ✕
+                </button>
               </div>
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">📊</span>
-                <span className="page-subtitle-white" style={{ margin: 0, textAlign: 'left' }}>Status atualizado do seu pedido</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">🛵</span>
-                <span className="page-subtitle-white" style={{ margin: 0, textAlign: 'left' }}>Dados do entregador responsável</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">📝</span>
-                <span className="page-subtitle-white" style={{ margin: 0, textAlign: 'left' }}>Detalhes completos do pedido</span>
+
+              <div className="p-6">
+                {loadingHistorico ? (
+                  <div className="text-center py-12">
+                    <span className="text-4xl animate-spin block mb-4">⏳</span>
+                    <p className="text-gray-600">Carregando histórico...</p>
+                  </div>
+                ) : historicoPedidos.length === 0 ? (
+                  <div className="text-center py-12">
+                    <span className="text-6xl block mb-4">📦</span>
+                    <p className="text-gray-600 text-lg">Nenhum pedido no histórico</p>
+                    <p className="text-gray-500 text-sm mt-2">Seus pedidos concluídos ou cancelados aparecerão aqui</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {historicoPedidos.map((pedido) => (
+                      <div
+                        key={pedido.id}
+                        className={`border-2 rounded-xl p-4 ${
+                          pedido.status === 'entregue'
+                            ? 'border-green-200 bg-green-50'
+                            : 'border-red-200 bg-red-50'
+                        }`}
+                      >
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <h4 className="font-bold text-gray-800 text-lg flex items-center gap-2">
+                              {pedido.status === 'entregue' ? '✅ Pedido Entregue' : '❌ Pedido Cancelado'}
+                            </h4>
+                            <p className="text-xs text-gray-500">
+                              🕒 {new Date(pedido.created_at).toLocaleString('pt-BR')}
+                            </p>
+                          </div>
+                          <span
+                            className={`px-3 py-1 rounded-full text-xs font-bold ${
+                              pedido.status === 'entregue'
+                                ? 'bg-green-200 text-green-800'
+                                : 'bg-red-200 text-red-800'
+                            }`}
+                          >
+                            {pedido.status === 'entregue' ? 'CONCLUÍDO' : 'CANCELADO'}
+                          </span>
+                        </div>
+
+                        {/* Informações do Pedido */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                          <div>
+                            <p className="text-xs font-medium text-gray-600 mb-1">👤 Cliente:</p>
+                            <p className="text-sm font-bold text-gray-800">{pedido.cliente}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium text-gray-600 mb-1">🏪 Estabelecimento:</p>
+                            <p className="text-sm font-bold text-gray-800">
+                              {pedido.estabelecimento?.nome_estabelecimento || pedido.estabelecimento_nome || 'N/A'}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Itens do Pedido */}
+                        <div className="bg-white rounded-lg p-3 border mb-3">
+                          <p className="text-xs font-bold text-gray-700 mb-2">📦 Itens:</p>
+                          <ul className="space-y-1">
+                            {Array.isArray(pedido.itens) ? (
+                              pedido.itens.map((item: string, index: number) => (
+                                <li key={index} className="text-sm text-gray-800 flex items-start gap-2">
+                                  <span className="text-red-500">•</span>
+                                  <span>{item}</span>
+                                </li>
+                              ))
+                            ) : (
+                              <li className="text-sm text-gray-800">{pedido.itens}</li>
+                            )}
+                          </ul>
+                        </div>
+
+                        {/* Forma de Pagamento e Endereço */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-xs font-medium text-gray-600 mb-1">💳 Forma de Pagamento:</p>
+                            <p className="text-sm font-bold text-gray-800">
+                              {pedido.forma_pagamento === 'pix' && '💠 PIX'}
+                              {pedido.forma_pagamento === 'dinheiro' && '💵 Dinheiro'}
+                              {pedido.forma_pagamento === 'cartao_credito' && '💳 Cartão de Crédito'}
+                              {pedido.forma_pagamento === 'cartao_debito' && '💳 Cartão de Débito'}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium text-gray-600 mb-1">📍 Endereço:</p>
+                            <p className="text-sm text-gray-800">{pedido.endereco || 'N/A'}</p>
+                          </div>
+                        </div>
+
+                        {/* Observações */}
+                        {pedido.observacoes && (
+                          <div className="mt-3 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                            <p className="text-xs font-bold text-yellow-800 mb-1">📝 Observações:</p>
+                            <p className="text-sm text-gray-800">{pedido.observacoes}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
+        )}
 
       </div>
     </div>

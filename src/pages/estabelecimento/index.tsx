@@ -81,7 +81,14 @@ export default function Estabelecimento() {
   const [carregandoPagamentos, setCarregandoPagamentos] = useState(false);
   const [carregando, setCarregando] = useState(true);
   const [mostrarCadastroProduto, setMostrarCadastroProduto] = useState(false);
-  
+  const [mostrarChavesPix, setMostrarChavesPix] = useState(false);
+  const [mostrarComprovante, setMostrarComprovante] = useState(false);
+  const [comprovanteSelecionado, setComprovanteSelecionado] = useState<string | null>(null);
+  const [pedidoComprovante, setPedidoComprovante] = useState<any>(null);
+  const [mostrarRetiradas, setMostrarRetiradas] = useState(false);
+  const [solicitacoesRetirada, setSolicitacoesRetirada] = useState<any[]>([]);
+  const [carregandoRetiradas, setCarregandoRetiradas] = useState(false);
+
   // Estados para produtos
   const [produtos, setProdutos] = useState<any[]>([]);
   const [nomeProduto, setNomeProduto] = useState('');
@@ -95,6 +102,14 @@ export default function Estabelecimento() {
   const [loadingProduto, setLoadingProduto] = useState(false);
   const [filtroProduto, setFiltroProduto] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Estados para chaves PIX
+  const [chavePix, setChavePix] = useState('');
+  const [tipoChavePix, setTipoChavePix] = useState('cpf');
+  const [nomeTitularPix, setNomeTitularPix] = useState('');
+  const [bancoPix, setBancoPix] = useState('');
+  const [chavesPixSalvas, setChavesPixSalvas] = useState<any[]>([]);
+  const [loadingChavePix, setLoadingChavePix] = useState(false);
 
   // ============ FUNÇÕES DE PRODUTOS ============
   
@@ -172,6 +187,125 @@ export default function Estabelecimento() {
     p.categoria?.toLowerCase().includes(filtroProduto?.toLowerCase() || '')
   );
 
+  // ============ FUNÇÕES DE CHAVES PIX ============
+
+  // Carregar chaves PIX salvas
+  const carregarChavesPix = async () => {
+    const user = localStorage.getItem('estabelecimento_user');
+    if (!user) return;
+    const userData = JSON.parse(user);
+    const estabelecimentoId = userData.id;
+    try {
+      const { data, error } = await supabase
+        .from('chaves_pix')
+        .select('*')
+        .eq('estabelecimento_id', estabelecimentoId)
+        .order('criado_em', { ascending: false });
+      if (error) throw error;
+      if (data) setChavesPixSalvas(data);
+    } catch (err) { console.error('Erro ao carregar chaves PIX:', err); }
+  };
+
+  // Cadastrar chave PIX
+  const handleCadastrarChavePix = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chavePix || !nomeTitularPix || !bancoPix) {
+      alert('Preencha todos os campos!');
+      return;
+    }
+    setLoadingChavePix(true);
+    try {
+      const user = localStorage.getItem('estabelecimento_user');
+      if (!user) return;
+      const userData = JSON.parse(user);
+      const { error } = await supabase.from('chaves_pix').insert([{
+        chave: chavePix,
+        tipo: tipoChavePix,
+        titular: nomeTitularPix,
+        banco: bancoPix,
+        estabelecimento_id: userData.id,
+      }]);
+      if (error) throw error;
+      alert('✅ Chave PIX cadastrada com sucesso!');
+      setChavePix('');
+      setNomeTitularPix('');
+      setBancoPix('');
+      setTipoChavePix('cpf');
+      carregarChavesPix();
+    } catch (err) {
+      alert('Erro ao cadastrar chave PIX: ' + (err as Error).message);
+    } finally {
+      setLoadingChavePix(false);
+    }
+  };
+
+  // Excluir chave PIX
+  const handleExcluirChavePix = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta chave PIX?')) return;
+    try {
+      const { error } = await supabase.from('chaves_pix').delete().eq('id', id);
+      if (error) throw error;
+      alert('✅ Chave PIX excluída com sucesso!');
+      carregarChavesPix();
+    } catch (err) {
+      alert('Erro ao excluir chave PIX');
+    }
+  };
+
+  // ============ FUNÇÕES DE RETIRADAS ============
+
+  // Carregar solicitações de retirada
+  const carregarRetiradas = async () => {
+    setCarregandoRetiradas(true);
+    try {
+      const { data, error } = await supabase
+        .from('solicitacoes_retirada')
+        .select(`
+          *,
+          entregador:entregadores(id, nome, telefone)
+        `)
+        .order('criado_em', { ascending: false });
+      if (error) throw error;
+      setSolicitacoesRetirada(data || []);
+    } catch (err) {
+      console.error('Erro ao carregar retiradas:', err);
+    } finally {
+      setCarregandoRetiradas(false);
+    }
+  };
+
+  // Aprovar retirada
+  const handleAprovarRetirada = async (solicitacao: any) => {
+    if (!confirm(`Aprovar retirada de ${solicitacao.entregador?.nome || 'Entregador'} no valor de R$ ${solicitacao.valor}?`)) return;
+    try {
+      const { error } = await supabase
+        .from('solicitacoes_retirada')
+        .update({ status: 'aprovada' })
+        .eq('id', solicitacao.id);
+      if (error) throw error;
+      alert('✅ Retirada aprovada com sucesso!');
+      carregarRetiradas();
+    } catch (err) {
+      alert('Erro ao aprovar retirada');
+    }
+  };
+
+  // Cancelar retirada
+  const handleCancelarRetirada = async (solicitacao: any) => {
+    if (!confirm('Tem certeza que deseja cancelar esta retirada?')) return;
+    try {
+      const { error } = await supabase
+        .from('solicitacoes_retirada')
+        .update({ status: 'cancelada' })
+        .eq('id', solicitacao.id);
+      if (error) throw error;
+      alert('❌ Retirada cancelada!');
+      carregarRetiradas();
+    } catch (err) {
+      alert('Erro ao cancelar retirada');
+    }
+  };
+
   // Verificar se usuário está logado
   useEffect(() => {
     // Verificação apenas no lado do cliente
@@ -217,17 +351,31 @@ export default function Estabelecimento() {
     }
   }, [mostrarCadastroProduto, estabelecimentoId]);
 
-  // Timeout de inatividade - 20 segundos
+  // Carregar chaves PIX quando mostrarChavesPix for true
+  useEffect(() => {
+    if (mostrarChavesPix && estabelecimentoId) {
+      carregarChavesPix();
+    }
+  }, [mostrarChavesPix, estabelecimentoId]);
+
+  // Carregar retiradas quando mostrarRetiradas for true
+  useEffect(() => {
+    if (mostrarRetiradas) {
+      carregarRetiradas();
+    }
+  }, [mostrarRetiradas]);
+
+  // Timeout de inatividade - 1 minuto
   useEffect(() => {
     if (typeof window === 'undefined' || !usuarioLogado) return;
 
-    const TEMPO_INATIVIDADE_MS = 20 * 1000; // 20 segundos
+    const TEMPO_INATIVIDADE_MS = 60 * 1000; // 1 minuto
     let timeoutId: NodeJS.Timeout;
 
     const resetarTimeout = () => {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
-        console.log('⏰ Tempo de inatividade atingido (10s), fazendo logout...');
+        console.log('⏰ Tempo de inatividade atingido (1 minuto), fazendo logout...');
         localStorage.removeItem('estabelecimento_user');
         localStorage.removeItem('nome_estabelecimento');
         router.replace('/login-estabelecimento');
@@ -493,6 +641,32 @@ export default function Estabelecimento() {
     }
   };
 
+  // Cancelar pedido na fila
+  const handleCancelarPedidoFila = async (pedido: FilaPedido) => {
+    if (!confirm(`⚠️ ATENÇÃO: Tem certeza que deseja CANCELAR este pedido?\n\nCliente: ${pedido.cliente}\n\nEste pedido irá para o histórico como CANCELADO e o cliente será notificado.\n\nEsta ação não pode ser desfeita.`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('fila_pedidos')
+        .update({ status: 'cancelado' })
+        .eq('id', pedido.id);
+
+      if (error) {
+        console.error('Erro ao cancelar pedido:', error);
+        alert('Erro ao cancelar pedido: ' + error.message);
+        return;
+      }
+
+      alert('❌ Pedido cancelado com sucesso!\n\nO pedido foi movido para o histórico como CANCELADO.');
+      carregarFilaPedidos();
+    } catch (err) {
+      console.error('Erro ao cancelar pedido:', err);
+      alert('Erro inesperado ao cancelar pedido');
+    }
+  };
+
   const pedidosFiltrados = pedidos.filter((pedido) => {
     if (filtroAtivo === 'todos') return true;
     if (filtroAtivo === 'pendentes') return pedido.status === 'pendente' || pedido.status === 'aceito';
@@ -732,6 +906,28 @@ export default function Estabelecimento() {
                 <span className="text-xl">🛍️</span>
                 Produtos
               </button>
+              <button
+                onClick={() => setMostrarChavesPix(true)}
+                className={`w-full font-medium py-3 px-4 rounded-lg transition-all flex items-center gap-3 text-left ${
+                  mostrarChavesPix
+                    ? 'bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-300'
+                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                }`}
+              >
+                <span className="text-xl">💠</span>
+                Chaves PIX
+              </button>
+              <button
+                onClick={() => setMostrarRetiradas(true)}
+                className={`w-full font-medium py-3 px-4 rounded-lg transition-all flex items-center gap-3 text-left ${
+                  mostrarRetiradas
+                    ? 'bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-300'
+                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                }`}
+              >
+                <span className="text-xl">🏦</span>
+                Retiradas
+              </button>
             </nav>
           </div>
         </aside>
@@ -809,6 +1005,26 @@ export default function Estabelecimento() {
           >
             <span className="text-2xl mb-1">🛍️</span>
             <span className="text-xs">Produtos</span>
+          </button>
+
+          <button
+            onClick={() => setMostrarChavesPix(true)}
+            className={`flex flex-col items-center p-2 rounded-lg flex-1 ${
+              mostrarChavesPix ? 'text-red-600 font-bold' : 'text-gray-500'
+            }`}
+          >
+            <span className="text-2xl mb-1">💠</span>
+            <span className="text-xs">Chaves PIX</span>
+          </button>
+
+          <button
+            onClick={() => setMostrarRetiradas(true)}
+            className={`flex flex-col items-center p-2 rounded-lg flex-1 ${
+              mostrarRetiradas ? 'text-red-600 font-bold' : 'text-gray-500'
+            }`}
+          >
+            <span className="text-2xl mb-1">🏦</span>
+            <span className="text-xs">Retiradas</span>
           </button>
         </nav>
 
@@ -948,6 +1164,234 @@ export default function Estabelecimento() {
                   </div>
                 )}
               </div>
+            </section>
+          )}
+
+          {/* Gerenciamento de Chaves PIX */}
+          {mostrarChavesPix && (
+            <section className="bg-white rounded-lg shadow-lg p-6 mb-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                  <span className="text-2xl">💠</span>
+                  Gerenciar Chaves PIX
+                </h2>
+                <button
+                  onClick={() => setMostrarChavesPix(false)}
+                  className="text-gray-500 hover:text-gray-700 text-sm font-medium flex items-center gap-1"
+                >
+                  ✕ Fechar
+                </button>
+              </div>
+
+              {/* Formulário de Cadastro de Chave PIX */}
+              <form onSubmit={handleCadastrarChavePix} className="space-y-4 mb-6">
+                <h3 className="font-bold text-gray-700 mb-2">Nova Chave PIX</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Chave *</label>
+                    <select
+                      value={tipoChavePix}
+                      onChange={(e) => setTipoChavePix(e.target.value)}
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-red-200 focus:border-red-500 focus:outline-none transition-all"
+                      required
+                    >
+                      <option value="cpf">CPF</option>
+                      <option value="cnpj">CNPJ</option>
+                      <option value="email">E-mail</option>
+                      <option value="telefone">Telefone</option>
+                      <option value="aleatoria">Chave Aleatória</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Chave PIX *</label>
+                    <input
+                      type="text"
+                      value={chavePix}
+                      onChange={(e) => setChavePix(e.target.value)}
+                      placeholder="Digite a chave PIX"
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-red-200 focus:border-red-500 focus:outline-none transition-all"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nome do Titular *</label>
+                  <input
+                    type="text"
+                    value={nomeTitularPix}
+                    onChange={(e) => setNomeTitularPix(e.target.value)}
+                    placeholder="Nome completo do titular da conta"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-red-200 focus:border-red-500 focus:outline-none transition-all"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Banco *</label>
+                  <input
+                    type="text"
+                    value={bancoPix}
+                    onChange={(e) => setBancoPix(e.target.value)}
+                    placeholder="Nome do banco (ex: Nubank, Itaú, Bradesco...)"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-red-200 focus:border-red-500 focus:outline-none transition-all"
+                    required
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loadingChavePix}
+                  className={`w-full py-3 rounded-xl font-bold text-white text-lg shadow-lg transition-all ${
+                    loadingChavePix
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-red-600 hover:bg-red-700 hover:shadow-xl'
+                  }`}
+                >
+                  {loadingChavePix ? '⏳ Cadastrando...' : '✅ Cadastrar Chave PIX'}
+                </button>
+              </form>
+
+              {/* Lista de Chaves PIX Cadastradas */}
+              <div className="border-t pt-4">
+                <h3 className="font-bold text-gray-700 mb-4">Chaves PIX Cadastradas ({chavesPixSalvas.length})</h3>
+
+                {chavesPixSalvas.length === 0 ? (
+                  <div className="text-center py-8 bg-gray-50 rounded-lg">
+                    <span className="text-5xl">💠</span>
+                    <p className="text-gray-500 mt-2">Nenhuma chave PIX cadastrada</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {chavesPixSalvas.map((chave) => (
+                      <div key={chave.id} className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow bg-white">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded-full font-bold uppercase">
+                                {chave.tipo}
+                              </span>
+                              <h4 className="font-bold text-gray-800">{chave.chave}</h4>
+                            </div>
+                            <p className="text-sm text-gray-600">👤 {chave.titular}</p>
+                            <p className="text-sm text-gray-500">🏦 {chave.banco}</p>
+                          </div>
+                          <button
+                            onClick={() => handleExcluirChavePix(chave.id)}
+                            className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-xs font-bold hover:bg-red-200 transition-all"
+                          >
+                            🗑️ Excluir
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* Gerenciamento de Retiradas */}
+          {mostrarRetiradas && (
+            <section className="bg-white rounded-lg shadow-lg p-6 mb-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                  <span className="text-2xl">🏦</span>
+                  Solicitações de Retirada
+                </h2>
+                <button
+                  onClick={() => setMostrarRetiradas(false)}
+                  className="text-gray-500 hover:text-gray-700 text-sm font-medium flex items-center gap-1"
+                >
+                  ✕ Fechar
+                </button>
+              </div>
+
+              {carregandoRetiradas ? (
+                <div className="text-center py-12">
+                  <span className="text-4xl animate-spin block mb-4">⏳</span>
+                  <p className="text-gray-600">Carregando solicitações...</p>
+                </div>
+              ) : solicitacoesRetirada.length === 0 ? (
+                <div className="text-center py-12 bg-gray-50 rounded-lg">
+                  <span className="text-5xl">📭</span>
+                  <p className="text-gray-500 mt-2">Nenhuma solicitação de retirada</p>
+                  <p className="text-gray-400 text-sm mt-1">As solicitações dos entregadores aparecerão aqui</p>
+                </div>
+              ) : (
+                <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                  {solicitacoesRetirada.map((solicitacao) => (
+                    <div
+                      key={solicitacao.id}
+                      className="border-2 rounded-xl p-4 bg-white hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-2xl">👤</span>
+                            <div>
+                              <h3 className="font-bold text-gray-800 text-lg">
+                                {solicitacao.entregador?.nome || 'Entregador'}
+                              </h3>
+                              {solicitacao.entregador?.telefone && (
+                                <p className="text-sm text-gray-600">
+                                  📞 {solicitacao.entregador.telefone}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-green-600">
+                            {solicitacao.valor.toLocaleString('pt-BR', {
+                              style: 'currency',
+                              currency: 'BRL',
+                            })}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {new Date(solicitacao.criado_em).toLocaleString('pt-BR')}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-3">
+                        <span
+                          className={`px-3 py-1.5 rounded-full text-sm font-bold ${
+                            solicitacao.status === 'pendente'
+                              ? 'bg-yellow-100 text-yellow-700'
+                              : solicitacao.status === 'aprovada'
+                              ? 'bg-green-100 text-green-700'
+                              : 'bg-red-100 text-red-700'
+                          }`}
+                        >
+                          {solicitacao.status === 'pendente' && '⏳ Pendente'}
+                          {solicitacao.status === 'aprovada' && '✅ Aprovada'}
+                          {solicitacao.status === 'cancelada' && '❌ Cancelada'}
+                        </span>
+
+                        {solicitacao.status === 'pendente' && (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleAprovarRetirada(solicitacao)}
+                              className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm"
+                            >
+                              ✅ Aprovar
+                            </button>
+                            <button
+                              onClick={() => handleCancelarRetirada(solicitacao)}
+                              className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm"
+                            >
+                              ❌ Cancelar
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </section>
           )}
 
@@ -1468,12 +1912,40 @@ export default function Estabelecimento() {
                         )}
                       </div>
 
-                      <button
-                        onClick={() => aceitarPedidoFila(pedido)}
-                        className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-colors shadow-md flex items-center justify-center gap-2"
-                      >
-                        ✅ ACEITAR PEDIDO E INICIAR PREPARAÇÃO
-                      </button>
+                      {/* Botão de Comprovante PIX */}
+                      {pedido.forma_pagamento === 'pix' && pedido.comprovante_pix && (
+                        <button
+                          onClick={() => {
+                            setComprovanteSelecionado(pedido.comprovante_pix);
+                            setPedidoComprovante(pedido);
+                            setMostrarComprovante(true);
+                          }}
+                          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors shadow-md flex items-center justify-center gap-2 mb-3"
+                        >
+                          📎 Ver Comprovante de Pagamento PIX
+                        </button>
+                      )}
+
+                      {pedido.forma_pagamento === 'pix' && !pedido.comprovante_pix && (
+                        <div className="w-full bg-yellow-100 border border-yellow-300 text-yellow-800 font-medium py-2 px-4 rounded-lg mb-3 text-center text-sm">
+                          ⚠️ Comprovante não anexado
+                        </div>
+                      )}
+
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => aceitarPedidoFila(pedido)}
+                          className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-colors shadow-md flex items-center justify-center gap-2"
+                        >
+                          ✅ ACEITAR
+                        </button>
+                        <button
+                          onClick={() => handleCancelarPedidoFila(pedido)}
+                          className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-colors shadow-md flex items-center justify-center gap-2"
+                        >
+                          ❌ CANCELAR
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1575,17 +2047,36 @@ export default function Estabelecimento() {
                         )}
                       </div>
 
-                      <div className="mt-4">
-                        <label className="block text-xs font-bold text-gray-700 mb-1">Atualizar Status:</label>
+                      {/* Botão de Comprovante PIX - Em Preparação */}
+                      {pedido.forma_pagamento === 'pix' && pedido.comprovante_pix && (
+                        <button
+                          onClick={() => {
+                            setComprovanteSelecionado(pedido.comprovante_pix);
+                            setPedidoComprovante(pedido);
+                            setMostrarComprovante(true);
+                          }}
+                          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors shadow-md flex items-center justify-center gap-2 mb-3"
+                        >
+                          📎 Ver Comprovante de Pagamento PIX
+                        </button>
+                      )}
+
+                      <div className="mt-4 flex gap-2">
                         <select
                           value={pedido.status}
                           onChange={(e) => atualizarStatusFila(pedido.id, e.target.value)}
-                          className="w-full bg-white border border-orange-300 text-orange-800 text-sm rounded-lg focus:ring-orange-500 focus:border-orange-500 block p-2.5 font-bold cursor-pointer hover:bg-orange-50 transition-colors"
+                          className="flex-1 bg-white border border-orange-300 text-orange-800 text-sm rounded-lg focus:ring-orange-500 focus:border-orange-500 block p-2.5 font-bold cursor-pointer hover:bg-orange-50 transition-colors"
                         >
                           <option value="em_preparacao">🔥 Em Preparação</option>
                           <option value="em_rota">🚛 Em Rota de Entrega</option>
                           <option value="entregue">✅ Entregue</option>
                         </select>
+                        <button
+                          onClick={() => handleCancelarPedidoFila(pedido)}
+                          className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors shadow-md flex items-center justify-center gap-2"
+                        >
+                          ❌ Cancelar
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -1688,16 +2179,35 @@ export default function Estabelecimento() {
                         )}
                       </div>
 
-                      <div className="mt-4">
-                        <label className="block text-xs font-bold text-gray-700 mb-1">Atualizar Status:</label>
+                      {/* Botão de Comprovante PIX - Em Rota */}
+                      {pedido.forma_pagamento === 'pix' && pedido.comprovante_pix && (
+                        <button
+                          onClick={() => {
+                            setComprovanteSelecionado(pedido.comprovante_pix);
+                            setPedidoComprovante(pedido);
+                            setMostrarComprovante(true);
+                          }}
+                          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors shadow-md flex items-center justify-center gap-2 mb-3"
+                        >
+                          📎 Ver Comprovante de Pagamento PIX
+                        </button>
+                      )}
+
+                      <div className="mt-4 flex gap-2">
                         <select
                           value={pedido.status}
                           onChange={(e) => atualizarStatusFila(pedido.id, e.target.value)}
-                          className="w-full bg-white border border-purple-300 text-purple-800 text-sm rounded-lg focus:ring-purple-500 focus:border-purple-500 block p-2.5 font-bold cursor-pointer hover:bg-purple-50 transition-colors"
+                          className="flex-1 bg-white border border-purple-300 text-purple-800 text-sm rounded-lg focus:ring-purple-500 focus:border-purple-500 block p-2.5 font-bold cursor-pointer hover:bg-purple-50 transition-colors"
                         >
                           <option value="em_rota">🚛 Em Rota de Entrega</option>
                           <option value="entregue">✅ Entregue</option>
                         </select>
+                        <button
+                          onClick={() => handleCancelarPedidoFila(pedido)}
+                          className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors shadow-md flex items-center justify-center gap-2"
+                        >
+                          ❌ Cancelar
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -1800,6 +2310,113 @@ export default function Estabelecimento() {
             carregarPagamentos();
           }}
         />
+
+        {/* Modal de Comprovante PIX */}
+        {mostrarComprovante && comprovanteSelecionado && (
+          <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[100] p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+                <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                  📎 Comprovante de Pagamento PIX
+                </h3>
+                <button
+                  onClick={() => {
+                    setMostrarComprovante(false);
+                    setComprovanteSelecionado(null);
+                    setPedidoComprovante(null);
+                  }}
+                  className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="p-6">
+                {/* Informações do Pedido */}
+                {pedidoComprovante && (
+                  <div className="bg-gray-50 rounded-xl p-4 mb-6">
+                    <h4 className="font-bold text-gray-800 mb-3">📋 Informações do Pedido</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Cliente:</span>
+                        <span className="font-medium text-gray-800">{pedidoComprovante.cliente}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Data:</span>
+                        <span className="font-medium text-gray-800">
+                          {new Date(pedidoComprovante.createdAt).toLocaleString('pt-BR')}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Status:</span>
+                        <span className="font-medium text-gray-800 capitalize">
+                          {pedidoComprovante.status.replace('_', ' ')}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Pagamento:</span>
+                        <span className="font-medium text-gray-800">💠 PIX</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Comprovante */}
+                <div className="mb-6">
+                  <h4 className="font-bold text-gray-800 mb-3">🖼️ Comprovante Anexado</h4>
+                  {comprovanteSelecionado.endsWith('.pdf') ? (
+                    <div className="border-2 border-gray-200 rounded-xl p-8 text-center bg-gray-50">
+                      <span className="text-6xl mb-4 block">📄</span>
+                      <p className="text-gray-600 mb-4">Arquivo PDF</p>
+                      <a
+                        href={comprovanteSelecionado}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition-colors"
+                      >
+                        📥 Abrir PDF
+                      </a>
+                    </div>
+                  ) : (
+                    <div className="border-2 border-gray-200 rounded-xl overflow-hidden">
+                      <img
+                        src={comprovanteSelecionado}
+                        alt="Comprovante de Pagamento"
+                        className="w-full h-auto"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Botões de Ação */}
+                <div className="flex gap-3">
+                  <a
+                    href={comprovanteSelecionado}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    download
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-colors text-center"
+                  >
+                    📥 Baixar Comprovante
+                  </a>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(comprovanteSelecionado);
+                        alert('✅ Link do comprovante copiado!');
+                      } catch (err) {
+                        console.error('Erro ao copiar:', err);
+                      }
+                    }}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
+                  >
+                    📋 Copiar Link
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       </>
       )}

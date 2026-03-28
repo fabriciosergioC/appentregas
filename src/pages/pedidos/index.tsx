@@ -28,6 +28,15 @@ export default function Pedidos() {
   });
   const pedidosRecusadosRef = useRef(pedidosRecusados);
 
+  // Estados para chaves PIX do entregador
+  const [mostrarChavesPix, setMostrarChavesPix] = useState(false);
+  const [chavePix, setChavePix] = useState('');
+  const [tipoChavePix, setTipoChavePix] = useState('cpf');
+  const [nomeTitularPix, setNomeTitularPix] = useState('');
+  const [bancoPix, setBancoPix] = useState('');
+  const [chavesPixSalvas, setChavesPixSalvas] = useState<any[]>([]);
+  const [loadingChavePix, setLoadingChavePix] = useState(false);
+
   // Atualizar ref quando pedidosRecusados mudar
   useEffect(() => {
     pedidosRecusadosRef.current = pedidosRecusados;
@@ -214,6 +223,13 @@ export default function Pedidos() {
     };
   }, [router, iniciarSomRepetitivo]);
 
+  // Carregar chaves PIX quando mostrarChavesPix for true
+  useEffect(() => {
+    if (mostrarChavesPix) {
+      carregarChavesPix();
+    }
+  }, [mostrarChavesPix]);
+
   // Função para remover todas as assinaturas
   const limparAssinaturas = () => {
     removerAssinaturaPedidos();
@@ -338,6 +354,68 @@ export default function Pedidos() {
     } catch (error: any) {
       console.error('❌ Erro ao aceitar pedido:', error);
       alert('Erro ao aceitar pedido: ' + (error?.message || 'Erro desconhecido'));
+    }
+  };
+
+  // ============ FUNÇÕES DE CHAVES PIX DO ENTREGADOR ============
+
+  // Carregar chaves PIX salvas
+  const carregarChavesPix = async () => {
+    const entregadorId = getEntregadorId();
+    if (!entregadorId) return;
+    try {
+      const { data, error } = await supabase
+        .from('chaves_pix_entregadores')
+        .select('*')
+        .eq('entregador_id', entregadorId)
+        .order('criado_em', { ascending: false });
+      if (error) throw error;
+      if (data) setChavesPixSalvas(data);
+    } catch (err) { console.error('Erro ao carregar chaves PIX:', err); }
+  };
+
+  // Cadastrar chave PIX
+  const handleCadastrarChavePix = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chavePix || !nomeTitularPix || !bancoPix) {
+      alert('Preencha todos os campos!');
+      return;
+    }
+    setLoadingChavePix(true);
+    try {
+      const entregadorId = getEntregadorId();
+      if (!entregadorId) return;
+      const { error } = await supabase.from('chaves_pix_entregadores').insert([{
+        chave: chavePix,
+        tipo: tipoChavePix,
+        titular: nomeTitularPix,
+        banco: bancoPix,
+        entregador_id: entregadorId,
+      }]);
+      if (error) throw error;
+      alert('✅ Chave PIX cadastrada com sucesso!');
+      setChavePix('');
+      setNomeTitularPix('');
+      setBancoPix('');
+      setTipoChavePix('cpf');
+      carregarChavesPix();
+    } catch (err) {
+      alert('Erro ao cadastrar chave PIX: ' + (err as Error).message);
+    } finally {
+      setLoadingChavePix(false);
+    }
+  };
+
+  // Excluir chave PIX
+  const handleExcluirChavePix = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta chave PIX?')) return;
+    try {
+      const { error } = await supabase.from('chaves_pix_entregadores').delete().eq('id', id);
+      if (error) throw error;
+      alert('✅ Chave PIX excluída com sucesso!');
+      carregarChavesPix();
+    } catch (err) {
+      alert('Erro ao excluir chave PIX');
     }
   };
 
@@ -532,6 +610,14 @@ export default function Pedidos() {
               <span>Saldo</span>
             </button>
             <button
+              onClick={() => setMostrarChavesPix(true)}
+              className="flex-1 bg-green-700 hover:bg-green-800 px-4 py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 border border-white/20"
+              title="Chaves PIX"
+            >
+              <span className="text-lg">💠</span>
+              <span>PIX</span>
+            </button>
+            <button
               onClick={handleLogout}
               className="bg-red-600 hover:bg-red-700 px-4 py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 border border-white/20"
               title="Sair"
@@ -627,6 +713,135 @@ export default function Pedidos() {
             entregadorId={entregador.id}
             onClose={() => setModalSaldoAberto(false)}
           />
+        )}
+
+        {/* Modal de Chaves PIX */}
+        {mostrarChavesPix && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full my-8">
+              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+                <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                  💠 Minhas Chaves PIX
+                </h3>
+                <button
+                  onClick={() => setMostrarChavesPix(false)}
+                  className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="p-4">
+                {/* Formulário de Cadastro */}
+                <form onSubmit={handleCadastrarChavePix} className="space-y-3 mb-4">
+                  <h4 className="font-bold text-gray-700 mb-2 text-center">Nova Chave PIX</h4>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Tipo *</label>
+                      <select
+                        value={tipoChavePix}
+                        onChange={(e) => setTipoChavePix(e.target.value)}
+                        className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-500 focus:outline-none transition-all text-sm"
+                        required
+                      >
+                        <option value="cpf">CPF</option>
+                        <option value="cnpj">CNPJ</option>
+                        <option value="email">E-mail</option>
+                        <option value="telefone">Telefone</option>
+                        <option value="aleatoria">Aleatória</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Chave *</label>
+                      <input
+                        type="text"
+                        value={chavePix}
+                        onChange={(e) => setChavePix(e.target.value)}
+                        placeholder="Digite a chave"
+                        className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-500 focus:outline-none transition-all text-sm"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Nome do Titular *</label>
+                    <input
+                      type="text"
+                      value={nomeTitularPix}
+                      onChange={(e) => setNomeTitularPix(e.target.value)}
+                      placeholder="Nome completo do titular"
+                      className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-500 focus:outline-none transition-all text-sm"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Banco *</label>
+                    <input
+                      type="text"
+                      value={bancoPix}
+                      onChange={(e) => setBancoPix(e.target.value)}
+                      placeholder="Nome do banco (ex: Nubank, Itaú...)"
+                      className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-green-200 focus:border-green-500 focus:outline-none transition-all text-sm"
+                      required
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loadingChavePix}
+                    className={`w-full py-2 rounded-lg font-bold text-white text-sm shadow-lg transition-all ${
+                      loadingChavePix
+                        ? 'bg-gray-400 cursor-not-allowed'
+                        : 'bg-green-600 hover:bg-green-700 hover:shadow-xl'
+                    }`}
+                  >
+                    {loadingChavePix ? '⏳ Cadastrando...' : '✅ Cadastrar Chave PIX'}
+                  </button>
+                </form>
+
+                {/* Lista de Chaves Cadastradas */}
+                <div className="border-t pt-3">
+                  <h4 className="font-bold text-gray-700 mb-3 text-sm">Chaves Cadastradas ({chavesPixSalvas.length})</h4>
+
+                  {chavesPixSalvas.length === 0 ? (
+                    <div className="text-center py-6 bg-gray-50 rounded-lg">
+                      <span className="text-4xl">💠</span>
+                      <p className="text-gray-500 mt-2 text-sm">Nenhuma chave cadastrada</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {chavesPixSalvas.map((chave) => (
+                        <div key={chave.id} className="border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow bg-white">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-bold uppercase">
+                                  {chave.tipo}
+                                </span>
+                                <span className="font-bold text-gray-800 text-sm truncate">{chave.chave}</span>
+                              </div>
+                              <p className="text-xs text-gray-600 truncate">👤 {chave.titular}</p>
+                              <p className="text-xs text-gray-500">🏦 {chave.banco}</p>
+                            </div>
+                            <button
+                              onClick={() => handleExcluirChavePix(chave.id)}
+                              className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-bold hover:bg-red-200 transition-all flex-shrink-0"
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </>

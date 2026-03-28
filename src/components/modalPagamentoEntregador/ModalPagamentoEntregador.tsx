@@ -33,12 +33,41 @@ export default function ModalPagamentoEntregador({
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState('');
   const [sucesso, setSucesso] = useState('');
+  const [chavesPixEntregador, setChavesPixEntregador] = useState<any[]>([]);
+  const [carregandoChavesPix, setCarregandoChavesPix] = useState(false);
+  const [comprovanteFile, setComprovanteFile] = useState<File | null>(null);
+  const [comprovantePreview, setComprovantePreview] = useState<string | null>(null);
+  const [enviandoComprovante, setEnviandoComprovante] = useState(false);
 
   useEffect(() => {
     if (aberto) {
       carregarEntregadores();
     }
   }, [aberto]);
+
+  // Carregar chaves PIX quando entregador for selecionado e forma for PIX
+  useEffect(() => {
+    if (aberto && entregadorSelecionado && formaPagamento === 'pix') {
+      carregarChavesPixEntregador();
+    }
+  }, [entregadorSelecionado, formaPagamento, aberto]);
+
+  const carregarChavesPixEntregador = async () => {
+    setCarregandoChavesPix(true);
+    try {
+      const { data, error } = await supabase
+        .from('chaves_pix_entregadores')
+        .select('*')
+        .eq('entregador_id', entregadorSelecionado)
+        .order('criado_em', { ascending: false });
+      if (error) throw error;
+      setChavesPixEntregador(data || []);
+    } catch (err) {
+      console.error('Erro ao carregar chaves PIX:', err);
+    } finally {
+      setCarregandoChavesPix(false);
+    }
+  };
 
   const carregarEntregadores = async () => {
     try {
@@ -65,6 +94,13 @@ export default function ModalPagamentoEntregador({
 
     if (!entregadorSelecionado) {
       setErro('Selecione um entregador');
+      setLoading(false);
+      return;
+    }
+
+    // Validar comprovante PIX se for o caso
+    if (formaPagamento === 'pix' && !comprovanteFile) {
+      setErro('Para pagamento via PIX, é necessário anexar o comprovante!');
       setLoading(false);
       return;
     }
@@ -98,18 +134,52 @@ export default function ModalPagamentoEntregador({
         return;
       }
 
+      let comprovanteUrl = null;
+
+      // Upload do comprovante se for PIX
+      if (formaPagamento === 'pix' && comprovanteFile) {
+        setEnviandoComprovante(true);
+        try {
+          const fileName = `comprovantes-pagamento/${estabelecimentoId}/${Date.now()}_${comprovanteFile.name}`;
+          const { error: uploadError } = await supabase.storage
+            .from('comprovantes-pix')
+            .upload(fileName, comprovanteFile);
+
+          if (uploadError) throw uploadError;
+
+          const { data: urlData } = await supabase.storage
+            .from('comprovantes-pix')
+            .getPublicUrl(fileName);
+
+          comprovanteUrl = urlData?.publicUrl || null;
+        } catch (uploadErr) {
+          console.error('Erro no upload do comprovante:', uploadErr);
+          setErro('Erro ao fazer upload do comprovante. Tente novamente.');
+          setEnviandoComprovante(false);
+          setLoading(false);
+          return;
+        } finally {
+          setEnviandoComprovante(false);
+        }
+      }
+
       // Registrar pagamento
-      const { error } = await supabase.from('pagamentos_entregadores').insert([
-        {
-          entregador_id: entregadorSelecionado,
-          estabelecimento_id: estabelecimentoId,
-          valor: valorNumerico,
-          forma_pagamento: formaPagamento,
-          descricao: descricao || null,
-          status: 'realizado',
-          criado_por: estabelecimentoId,
-        },
-      ]);
+      const pagamentoData = {
+        entregador_id: entregadorSelecionado,
+        estabelecimento_id: estabelecimentoId,
+        valor: valorNumerico,
+        forma_pagamento: formaPagamento,
+        descricao: descricao || null,
+        status: 'realizado',
+        criado_por: estabelecimentoId,
+      };
+
+      // Adicionar comprovante se existir
+      if (comprovanteUrl) {
+        pagamentoData.comprovante_pix = comprovanteUrl;
+      }
+
+      const { error } = await supabase.from('pagamentos_entregadores').insert([pagamentoData]);
 
       if (error) throw error;
 
@@ -122,6 +192,9 @@ export default function ModalPagamentoEntregador({
         setValor('');
         setDescricao('');
         setFormaPagamento('pix');
+        setComprovanteFile(null);
+        setComprovantePreview(null);
+        setChavesPixEntregador([]);
         onClose();
       }, 2000);
     } catch (error: any) {
@@ -280,6 +353,141 @@ export default function ModalPagamentoEntregador({
               </button>
             </div>
           </div>
+
+          {/* Chaves PIX do Entregador */}
+          {formaPagamento === 'pix' && entregadorSelecionado && (
+            <div className="bg-purple-50 border-2 border-purple-200 rounded-xl p-4">
+              <h4 className="font-bold text-purple-800 mb-3 text-sm flex items-center gap-2">
+                💠 Chaves PIX do Entregador
+              </h4>
+
+              {carregandoChavesPix ? (
+                <div className="text-center py-4">
+                  <p className="text-purple-600 text-sm">⏳ Carregando chaves PIX...</p>
+                </div>
+              ) : chavesPixEntregador.length === 0 ? (
+                <div className="text-center py-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-yellow-700 text-sm">⚠️ Entregador não cadastrou chaves PIX</p>
+                  <p className="text-yellow-600 text-xs mt-1">Combine os dados do PIX diretamente com o entregador.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {chavesPixEntregador.map((chave) => (
+                    <div key={chave.id} className="bg-white border border-purple-200 rounded-lg p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="px-2 py-0.5 bg-purple-600 text-white text-xs rounded-full font-bold uppercase">
+                              {chave.tipo}
+                            </span>
+                            <span className="font-bold text-gray-800 text-sm">{chave.chave}</span>
+                          </div>
+                          <p className="text-xs text-gray-600">👤 <span className="font-medium">{chave.titular}</span></p>
+                          <p className="text-xs text-gray-500">🏦 <span className="font-medium">{chave.banco}</span></p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              await navigator.clipboard.writeText(chave.chave);
+                              alert('✅ Chave PIX copiada!');
+                            } catch (err) {
+                              console.error('Erro ao copiar:', err);
+                            }
+                          }}
+                          className="text-purple-600 hover:text-purple-700 text-xs font-bold flex-shrink-0"
+                        >
+                          📋 Copiar
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Comprovante PIX */}
+          {formaPagamento === 'pix' && (
+            <div className="bg-purple-50 border-2 border-purple-200 rounded-xl p-4">
+              <h4 className="font-bold text-purple-800 mb-3 text-sm flex items-center gap-2">
+                📎 Comprovante de Pagamento (Obrigatório)
+              </h4>
+
+              <label className="block w-full">
+                <div className="border-2 border-dashed border-purple-300 rounded-xl p-6 text-center cursor-pointer hover:border-purple-500 transition-colors bg-white">
+                  {comprovantePreview ? (
+                    <div className="flex flex-col items-center">
+                      <img
+                        src={comprovantePreview}
+                        alt="Comprovante"
+                        className="max-h-48 rounded-lg shadow-md mb-3"
+                      />
+                      <span className="text-sm text-green-600 font-bold">✅ Imagem carregada</span>
+                      <span className="text-xs text-gray-500 mt-1">Clique para trocar</span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center">
+                      <span className="text-4xl mb-2">📷</span>
+                      <p className="text-gray-700 font-bold mb-1">Clique para anexar o comprovante</p>
+                      <p className="text-xs text-gray-500">PNG, JPG (máx. 5MB)</p>
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        if (file.size > 5 * 1024 * 1024) {
+                          alert('O arquivo deve ter no máximo 5MB!');
+                          return;
+                        }
+                        setComprovanteFile(file);
+                        // Criar preview
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setComprovantePreview(reader.result as string);
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    className="hidden"
+                  />
+                </div>
+              </label>
+
+              {comprovanteFile && (
+                <div className="mt-3 flex items-center justify-between bg-white border border-purple-200 rounded-lg p-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">✅</span>
+                    <div>
+                      <p className="text-sm font-bold text-gray-800 truncate max-w-[200px]">
+                        {comprovanteFile.name}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {(comprovanteFile.size / 1024).toFixed(1)} KB
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setComprovanteFile(null);
+                      setComprovantePreview(null);
+                    }}
+                    className="text-red-500 hover:text-red-700 text-sm font-bold"
+                  >
+                    🗑️ Remover
+                  </button>
+                </div>
+              )}
+
+              <p className="text-xs text-purple-600 mt-3">
+                ⚠️ <strong>Atenção:</strong> O comprovante é obrigatório para pagamento via PIX.
+              </p>
+            </div>
+          )}
 
           {/* Descrição (Opcional) */}
           <div>
