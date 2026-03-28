@@ -1,0 +1,30 @@
+{
+  "pedidos": [
+    {
+      "id": "afbb4c1b-5531-4b27-9e22-6b7a437b8332",
+      "cliente": "Fabricio",
+      "status": "em_transito",
+      "endereco": "r mariopolis 271 tiradentes"
+    }
+  ],
+  "fila": [
+    {
+      "id": "82632cd7-1a81-43a6-9a40-9f65d58d1530",
+      "cliente": "Fabricio Sérgio Coelho",
+      "status": "em_preparacao",
+      "endereco": "R. Mariópolis, 271"
+    },
+    {
+      "id": "5a39ebef-6d5d-466b-b091-859e8d92ecfd",
+      "cliente": "Carlos Alberto",
+      "status": "em_preparacao",
+      "endereco": "Rua Mantena 233, Tidadentes"
+    },
+    {
+      "id": "7220db36-a909-4613-a38e-af2e8f97e24a",
+      "cliente": "Fabricio Sérgio Coelho",
+      "status": "em_preparacao",
+      "endereco": "rua mariopolis 271"
+    }
+  ]
+}
