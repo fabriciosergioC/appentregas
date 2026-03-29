@@ -23,6 +23,7 @@ interface Pedido {
   entregadorTelefone?: string;
   estabelecimento_nome?: string | null;
   estabelecimento_endereco?: string | null;
+  estabelecimento_id?: string | null;
   valor_pedido?: number | null;
   valor_entregador?: number | null;
   liberado_pelo_estabelecimento?: boolean;
@@ -566,15 +567,24 @@ export default function Estabelecimento() {
 
   const carregarPedidos = async () => {
     try {
+      if (!estabelecimentoId) {
+        console.log('⚠️ Sem estabelecimento_id para carregar pedidos');
+        setPedidos([]);
+        return;
+      }
+
       const resultado = await api.listarTodosPedidos();
       const data = resultado.data || [];
 
       if (Array.isArray(data)) {
-        // Filtrar apenas pedidos que NÃO vieram da fila de clientes (criados manualmente pelo estabelecimento)
-        // Pedidos da fila têm estabelecimento_nome E foram criados via carrinho
+        // Filtrar apenas pedidos que:
+        // 1. Foram criados manualmente pelo estabelecimento (sem telefone_cliente)
+        // 2. Possuem entregador vinculado (entregador_id)
+        // 3. Pertencem ao estabelecimento logado
         const pedidosFiltrados = data.filter(pedido => {
-          // Mostra pedidos criados manualmente (sem estabelecimento_nome ou sem telefone_cliente)
-          return !pedido.telefone_cliente;
+          return !pedido.telefone_cliente && 
+                 pedido.entregador_id && 
+                 pedido.estabelecimento_id === estabelecimentoId;
         });
 
         // Normalizar dados dos pedidos
