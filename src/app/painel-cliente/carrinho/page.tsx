@@ -148,6 +148,8 @@ export default function CarrinhoPage() {
           estabelecimento_nome: estabelecimento?.nome_estabelecimento || estabelecimentoNome,
           estabelecimento_id: estabelecimentoId,
           criado_por: 'cliente',
+          valor_pedido: totalCarrinho,
+          valor_entregador: 0, // Taxa do entregador (será calculada posteriormente)
         }])
         .select()
         .single();
@@ -233,12 +235,10 @@ export default function CarrinhoPage() {
         estabelecimento_nome: estabelecimento?.nome_estabelecimento || estabelecimentoNome,
         estabelecimento_id: estabelecimentoId,
         criado_por: 'cliente',
+        valor_pedido: totalCarrinho,
+        valor_entregador: 0, // Taxa do entregador (será calculada posteriormente)
+        comprovante_pix: comprovanteUrl || null,
       };
-
-      // Adicionar comprovante se existir
-      if (comprovanteUrl) {
-        pedidoData.comprovante_pix = comprovanteUrl;
-      }
 
       const { data: pedidoFila, error: erroFila } = await supabase
         .from('fila_pedidos')
@@ -265,6 +265,8 @@ export default function CarrinhoPage() {
               estabelecimento_nome: estabelecimento?.nome_estabelecimento || estabelecimentoNome,
               estabelecimento_id: estabelecimentoId,
               criado_por: 'cliente',
+              valor_pedido: totalCarrinho,
+              valor_entregador: 0, // Taxa do entregador (será calculada posteriormente)
             }])
             .select()
             .single();

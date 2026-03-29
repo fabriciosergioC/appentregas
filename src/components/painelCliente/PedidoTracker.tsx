@@ -352,9 +352,9 @@ export default function PedidoTracker({ pedidoId }: PedidoTrackerProps) {
 
             {/* Valores */}
             <div className="pt-4 border-t">
-              <div className="bg-green-50 rounded-lg p-3 border border-green-100">
-                <p className="text-xs font-medium text-green-700 mb-1">💰 Subtotal do Produto</p>
-                <p className="text-lg font-bold text-green-900">{formatarValor(pedido.valor_pedido)}</p>
+              <div className="bg-purple-50 rounded-lg p-3 border border-purple-100">
+                <p className="text-xs font-medium text-purple-700 mb-1">📊 Subtotal</p>
+                <p className="text-xl font-black text-purple-900">{formatarValor((pedido.valor_pedido || 0) + (pedido.valor_entregador || 0))}</p>
               </div>
             </div>
 

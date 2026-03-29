@@ -50,6 +50,8 @@ interface FilaPedido {
   pedido_id?: string;
   created_at: string;
   createdAt: Date;
+  valor_pedido?: number | null;
+  valor_entregador?: number | null;
 }
 
 type FiltroPedidos = 'todos' | 'pendentes' | 'em_entrega' | 'entregues';
@@ -1894,10 +1896,18 @@ export default function Estabelecimento() {
                       </ul>
                     </div>
 
-                    <div className="pt-2 mb-2">
+                    <div className="pt-2 mb-2 space-y-2">
                       <div className="bg-green-50 p-3 rounded-lg border border-green-100">
-                        <p className="text-xs font-medium text-green-700 uppercase mb-1">Subtotal do Produto</p>
+                        <p className="text-xs font-medium text-green-700 uppercase mb-1">💰 Valor do Pedido</p>
                         <p className="text-lg font-bold text-green-900">{formatarValor(pedido.valor_pedido)}</p>
+                      </div>
+                      <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
+                        <p className="text-xs font-medium text-blue-700 uppercase mb-1">🛵 Valor do Entregador</p>
+                        <p className="text-lg font-bold text-blue-900">{formatarValor(pedido.valor_entregador)}</p>
+                      </div>
+                      <div className="bg-purple-50 p-3 rounded-lg border border-purple-100">
+                        <p className="text-xs font-medium text-purple-700 uppercase mb-1">📊 Subtotal</p>
+                        <p className="text-xl font-black text-purple-900">{formatarValor((pedido.valor_pedido || 0) + (pedido.valor_entregador || 0))}</p>
                       </div>
                     </div>
 
@@ -2089,6 +2099,22 @@ export default function Estabelecimento() {
                             <p className="text-sm text-gray-800 font-medium bg-yellow-50">{pedido.observacoes}</p>
                           </div>
                         )}
+
+                        {/* Valores - Pedido, Entregador e Subtotal */}
+                        <div className="space-y-2">
+                          <div className="bg-green-50 rounded p-2 border border-green-100">
+                            <p className="text-xs font-medium text-green-700 mb-1">💰 Valor do Pedido</p>
+                            <p className="text-sm font-bold text-green-900">{formatarValor(pedido.valor_pedido)}</p>
+                          </div>
+                          <div className="bg-blue-50 rounded p-2 border border-blue-100">
+                            <p className="text-xs font-medium text-blue-700 mb-1">🛵 Valor do Entregador</p>
+                            <p className="text-sm font-bold text-blue-900">{formatarValor(pedido.valor_entregador)}</p>
+                          </div>
+                          <div className="bg-purple-50 rounded p-2 border border-purple-100">
+                            <p className="text-xs font-medium text-purple-700 mb-1">📊 Subtotal</p>
+                            <p className="text-sm font-black text-purple-900">{formatarValor((pedido.valor_pedido || 0) + (pedido.valor_entregador || 0))}</p>
+                          </div>
+                        </div>
                       </div>
 
                       {/* Botão de Comprovante PIX */}
@@ -2224,6 +2250,22 @@ export default function Estabelecimento() {
                             <p className="text-sm text-gray-800">{pedido.observacoes}</p>
                           </div>
                         )}
+
+                        {/* Valores - Pedido, Entregador e Subtotal */}
+                        <div className="space-y-2">
+                          <div className="bg-green-50 rounded p-2 border border-green-100">
+                            <p className="text-xs font-medium text-green-700 mb-1">💰 Valor do Pedido</p>
+                            <p className="text-sm font-bold text-green-900">{formatarValor(pedido.valor_pedido)}</p>
+                          </div>
+                          <div className="bg-blue-50 rounded p-2 border border-blue-100">
+                            <p className="text-xs font-medium text-blue-700 mb-1">🛵 Valor do Entregador</p>
+                            <p className="text-sm font-bold text-blue-900">{formatarValor(pedido.valor_entregador)}</p>
+                          </div>
+                          <div className="bg-purple-50 rounded p-2 border border-purple-100">
+                            <p className="text-xs font-medium text-purple-700 mb-1">📊 Subtotal</p>
+                            <p className="text-sm font-black text-purple-900">{formatarValor((pedido.valor_pedido || 0) + (pedido.valor_entregador || 0))}</p>
+                          </div>
+                        </div>
                       </div>
 
                       {/* Botão de Comprovante PIX - Em Preparação */}
@@ -2356,6 +2398,22 @@ export default function Estabelecimento() {
                             <p className="text-sm text-gray-800">{pedido.observacoes}</p>
                           </div>
                         )}
+
+                        {/* Valores - Pedido, Entregador e Subtotal */}
+                        <div className="space-y-2">
+                          <div className="bg-green-50 rounded p-2 border border-green-100">
+                            <p className="text-xs font-medium text-green-700 mb-1">💰 Valor do Pedido</p>
+                            <p className="text-sm font-bold text-green-900">{formatarValor(pedido.valor_pedido)}</p>
+                          </div>
+                          <div className="bg-blue-50 rounded p-2 border border-blue-100">
+                            <p className="text-xs font-medium text-blue-700 mb-1">🛵 Valor do Entregador</p>
+                            <p className="text-sm font-bold text-blue-900">{formatarValor(pedido.valor_entregador)}</p>
+                          </div>
+                          <div className="bg-purple-50 rounded p-2 border border-purple-100">
+                            <p className="text-xs font-medium text-purple-700 mb-1">📊 Subtotal</p>
+                            <p className="text-sm font-black text-purple-900">{formatarValor((pedido.valor_pedido || 0) + (pedido.valor_entregador || 0))}</p>
+                          </div>
+                        </div>
                       </div>
 
                       {/* Botão de Comprovante PIX - Em Rota */}
