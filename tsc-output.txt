@@ -1,0 +1,28 @@
+﻿src/app/painel-cliente/[id]/page.tsx(8,20): error TS18047: 'params' is possibly 'null'.
+src/components/estabelecimentoCard/EstabelecimentoCard.tsx(118,23): error TS2345: Argument of type 'Produto' is not assignable to parameter of type 'Produto'.
+  Property 'estabelecimento_id' is missing in type 'Produto' but required in type 'Produto'.
+src/components/estabelecimentoCard/EstabelecimentoCard.tsx(123,19): error TS2345: Argument of type 'Produto' is not assignable to parameter of type 'Produto'.
+  Property 'estabelecimento_id' is missing in type 'Produto' but required in type 'Produto'.
+src/components/modalPagamentoEntregador/ModalPagamentoEntregador.tsx(179,23): error TS2339: Property 'comprovante_pix' does not exist on type '{ entregador_id: string; estabelecimento_id: string; valor: number; forma_pagamento: string; descricao: string | null; status: string; criado_por: string; }'.
+src/components/painelCliente/RastreamentoMapa.tsx(12,24): error TS2345: Argument of type '() => Promise<() => L.Map>' is not assignable to parameter of type 'DynamicOptions<{}> | Loader<{}>'.
+  Type '() => Promise<() => L.Map>' is not assignable to type '() => LoaderComponent<{}>'.
+    Type 'Promise<() => Map>' is not assignable to type 'LoaderComponent<{}>'.
+      Type '() => Map' is not assignable to type 'ComponentType<{}> | ComponentModule<{}>'.
+        Type '() => Map' is not assignable to type 'FunctionComponent<{}>'.
+          Type 'Map' is not assignable to type 'ReactNode'.
+src/components/painelCliente/RastreamentoMapa.tsx(33,15): error TS2349: This expression is not callable.
+  Not all constituents of type 'ComponentType<{}>' are callable.
+    Type 'ComponentClass<{}, any>' has no call signatures.
+src/components/painelCliente/RastreamentoMapa.tsx(128,33): error TS18047: 'entregador' is possibly 'null'.
+src/components/painelCliente/RastreamentoMapa.tsx(129,21): error TS18047: 'entregador' is possibly 'null'.
+src/components/VerificacaoCodigo.tsx(197,13): error TS2322: Type '(el: HTMLInputElement | null) => HTMLInputElement | null' is not assignable to type 'LegacyRef<HTMLInputElement> | undefined'.
+  Type '(el: HTMLInputElement | null) => HTMLInputElement | null' is not assignable to type '(instance: HTMLInputElement | null) => void | (() => VoidOrUndefinedOnly)'.
+    Type 'HTMLInputElement | null' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+      Type 'null' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+src/pages/estabelecimento/index.tsx(2110,67): error TS2339: Property 'comprovante_pix' does not exist on type 'FilaPedido'.
+src/pages/estabelecimento/index.tsx(2113,62): error TS2339: Property 'comprovante_pix' does not exist on type 'FilaPedido'.
+src/pages/estabelecimento/index.tsx(2123,68): error TS2339: Property 'comprovante_pix' does not exist on type 'FilaPedido'.
+src/pages/estabelecimento/index.tsx(2261,67): error TS2339: Property 'comprovante_pix' does not exist on type 'FilaPedido'.
+src/pages/estabelecimento/index.tsx(2264,62): error TS2339: Property 'comprovante_pix' does not exist on type 'FilaPedido'.
+src/pages/estabelecimento/index.tsx(2409,67): error TS2339: Property 'comprovante_pix' does not exist on type 'FilaPedido'.
+src/pages/estabelecimento/index.tsx(2412,62): error TS2339: Property 'comprovante_pix' does not exist on type 'FilaPedido'.

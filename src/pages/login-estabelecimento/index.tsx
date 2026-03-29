@@ -26,6 +26,18 @@ export default function LoginEstabelecimento() {
   const [erro, setErro] = useState<string | React.ReactNode>('');
   const [statusSupabase, setStatusSupabase] = useState<'online' | 'offline'>('online');
 
+  // Estado para Recuperação de Senha
+  const [mostrarRecuperacao, setMostrarRecuperacao] = useState(false);
+  const [emailRecuperacao, setEmailRecuperacao] = useState('');
+  const [etapaRecuperacao, setEtapaRecuperacao] = useState<1 | 2>(1);
+  const [tokenDigitado, setTokenDigitado] = useState('');
+  const [novaSenha, setNovaSenha] = useState('');
+  const [tokenSimuladoParaTeste, setTokenSimuladoParaTeste] = useState('');
+  const [loadingRecuperacao, setLoadingRecuperacao] = useState(false);
+  const [erroRecuperacao, setErroRecuperacao] = useState('');
+  const [sucessoRecuperacao, setSucessoRecuperacao] = useState('');
+  const [mostrarNovaSenha, setMostrarNovaSenha] = useState(false);
+
   // Registrar esta aba e ouvir eventos de fechamento
   useEffect(() => {
     // Salvar ID desta aba no localStorage
@@ -172,6 +184,125 @@ export default function LoginEstabelecimento() {
     }
   };
 
+  const handleSolicitarToken = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoadingRecuperacao(true);
+    setErroRecuperacao('');
+    setSucessoRecuperacao('');
+
+    if (!emailRecuperacao) {
+      setErroRecuperacao('Por favor, digite seu email');
+      setLoadingRecuperacao(false);
+      return;
+    }
+
+    try {
+      const { data: est, error } = await supabase
+        .from('estabelecimentos')
+        .select('id')
+        .eq('email', emailRecuperacao.toLowerCase())
+        .eq('ativo', true)
+        .single();
+
+      if (error || !est) {
+        throw new Error('Email não encontrado ou conta inativa.');
+      }
+
+      const tokenGerado = Math.floor(100000 + Math.random() * 900000).toString();
+      
+      const expiracao = new Date();
+      expiracao.setHours(expiracao.getHours() + 1);
+
+      const { error: updateError } = await supabase
+        .from('estabelecimentos')
+        .update({
+          token_recuperacao: tokenGerado,
+          token_expiracao: expiracao.toISOString()
+        })
+        .eq('id', est.id);
+
+      if (updateError) throw updateError;
+
+      setTokenSimuladoParaTeste(tokenGerado);
+      setSucessoRecuperacao('Um código de verificação foi gerado!');
+      setTimeout(() => setSucessoRecuperacao(''), 3000);
+      setEtapaRecuperacao(2);
+
+    } catch (err: any) {
+      console.error(err);
+      setErroRecuperacao(err.message || 'Erro ao processar solicitação.');
+    } finally {
+      setLoadingRecuperacao(false);
+    }
+  };
+
+  const handleRedefinirSenha = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoadingRecuperacao(true);
+    setErroRecuperacao('');
+
+    if (!tokenDigitado || !novaSenha) {
+      setErroRecuperacao('Preencha o código e a nova senha.');
+      setLoadingRecuperacao(false);
+      return;
+    }
+
+    if (novaSenha.length < 6) {
+      setErroRecuperacao('A nova senha deve ter no mínimo 6 caracteres.');
+      setLoadingRecuperacao(false);
+      return;
+    }
+
+    try {
+      const { data: est, error } = await supabase
+        .from('estabelecimentos')
+        .select('id, token_expiracao, token_recuperacao')
+        .eq('email', emailRecuperacao.toLowerCase())
+        .single();
+
+      if (error || !est) throw new Error('Credenciais inválidas.');
+
+      if (est.token_recuperacao !== tokenDigitado) {
+        throw new Error('Código de verificação incorreto.');
+      }
+
+      if (est.token_expiracao && new Date(est.token_expiracao) < new Date()) {
+        throw new Error('Código expirado. Solicite um novo.');
+      }
+
+      const senhaHash = btoa(novaSenha);
+
+      const { error: updateError } = await supabase
+        .from('estabelecimentos')
+        .update({
+          senha_hash: senhaHash,
+          token_recuperacao: null,
+          token_expiracao: null
+        })
+        .eq('id', est.id);
+
+      if (updateError) throw updateError;
+
+      setSucessoRecuperacao('Senha alterada com sucesso!');
+      
+      setTimeout(() => {
+        setMostrarRecuperacao(false);
+        setEtapaRecuperacao(1);
+        setTokenDigitado('');
+        setNovaSenha('');
+        setSucessoRecuperacao('');
+        setEmail(emailRecuperacao);
+        setTokenSimuladoParaTeste('');
+      }, 2000);
+
+    } catch (err: any) {
+      console.error(err);
+      setErroRecuperacao(err.message || 'Erro ao alterar a senha.');
+    } finally {
+      setLoadingRecuperacao(false);
+    }
+  };
+
   return (
     <>
       <Head>
@@ -244,7 +375,6 @@ export default function LoginEstabelecimento() {
                     value={senha}
                     onChange={(e) => setSenha(e.target.value)}
                     className="login-input"
-                    placeholder="••••••••"
                     required
                   />
                   <button
@@ -254,6 +384,11 @@ export default function LoginEstabelecimento() {
                     title={mostrarSenha ? "Ocultar senha" : "Ver senha"}
                   >
                     {mostrarSenha ? '👁️' : '🙈'}
+                  </button>
+                </div>
+                <div className="text-right mt-2">
+                  <button type="button" onClick={() => setMostrarRecuperacao(true)} className="recuperacao-senha-link">
+                    Esqueceu sua senha?
                   </button>
                 </div>
               </div>
@@ -314,6 +449,136 @@ export default function LoginEstabelecimento() {
           </div>
         </div>
       </div>
+
+      {/* MODAL DE RECUPERAÇÃO DE SENHA */}
+      {mostrarRecuperacao && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <button
+              onClick={() => {
+                setMostrarRecuperacao(false);
+                setEtapaRecuperacao(1);
+                setTokenSimuladoParaTeste('');
+                setErroRecuperacao('');
+                setSucessoRecuperacao('');
+              }}
+              className="modal-close"
+            >
+              ✕
+            </button>
+
+            <h2 className="modal-title">Recuperação de Senha</h2>
+            <p className="modal-subtitle">
+              {etapaRecuperacao === 1
+                ? 'Informe seu email cadastrado para receber o código de acesso.'
+                : 'Insira o código gerado e a sua nova senha segura.'}
+            </p>
+
+            {erroRecuperacao && (
+              <div className="error-alert">
+                <span className="font-medium">⚠️</span> {erroRecuperacao}
+              </div>
+            )}
+
+            {sucessoRecuperacao && (
+              <div className="bg-green-50 border-l-4 border-green-500 text-green-700 p-3 mb-4 rounded shadow-sm text-sm">
+                <span className="font-medium">✅</span> {sucessoRecuperacao}
+              </div>
+            )}
+
+            {etapaRecuperacao === 1 ? (
+              <form onSubmit={handleSolicitarToken} className="space-y-4">
+                <div>
+                  <label className="input-label block mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={emailRecuperacao}
+                    onChange={(e) => setEmailRecuperacao(e.target.value)}
+                    className="modal-input"
+                    placeholder="seu@email.com"
+                    required
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={loadingRecuperacao}
+                  className="modal-button"
+                >
+                  {loadingRecuperacao ? 'Aguarde...' : 'Enviar Código'}
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleRedefinirSenha} className="space-y-4">
+                {tokenSimuladoParaTeste && (
+                  <div className="modal-info">
+                    <span className="modal-info-icon">📲</span>
+                    <div className="modal-info-text">
+                      <p className="modal-info-title">MODO DE TESTE ATIVO</p>
+                      <p className="modal-info-value">{tokenSimuladoParaTeste}</p>
+                      <p className="text-xs text-green-700 mt-1">Copie o código acima</p>
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <label className="input-label block mb-1">Código numérico (6 dígitos)</label>
+                  <input
+                    type="text"
+                    value={tokenDigitado}
+                    onChange={(e) => setTokenDigitado(e.target.value.replace(/\D/g, '').substring(0, 6))}
+                    className="modal-input text-center text-xl font-bold tracking-widest"
+                    placeholder="000000"
+                    maxLength={6}
+                    required
+                  />
+                </div>
+                
+                <div style={{ position: 'relative' }}>
+                  <label className="input-label block mb-1">Nova Senha</label>
+                  <input
+                    type={mostrarNovaSenha ? 'text' : 'password'}
+                    value={novaSenha}
+                    onChange={(e) => setNovaSenha(e.target.value)}
+                    className="modal-input"
+                    placeholder="Mínimo 6 caracteres"
+                    style={{ paddingRight: '2.5rem' }}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setMostrarNovaSenha(!mostrarNovaSenha)}
+                    className="toggle-senha"
+                    style={{ position: 'absolute', right: '1rem', top: '2.5rem' }}
+                  >
+                    {mostrarNovaSenha ? '👁️' : '🙈'}
+                  </button>
+                </div>
+
+                <div className="modal-footer">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEtapaRecuperacao(1);
+                      setTokenSimuladoParaTeste('');
+                    }}
+                    className="modal-button modal-button-secondary"
+                  >
+                    Voltar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loadingRecuperacao}
+                    className="modal-button"
+                    style={{ background: 'linear-gradient(135deg, #16a34a, #059669)' }}
+                  >
+                    {loadingRecuperacao ? 'Salvando...' : 'Redefinir Senha'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 }

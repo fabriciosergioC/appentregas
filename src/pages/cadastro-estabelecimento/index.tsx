@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { createClient } from '@supabase/supabase-js';
 import '@/app/globals.css';
-import '../login-estabelecimento/login-animations.css';
+import './cadastro-estabelecimento.css';
 
 // Cliente Supabase
 const supabaseUrl = 'https://lhvfjaimrsrbvketayck.supabase.co';
@@ -37,13 +37,12 @@ export default function CadastroEstabelecimento() {
   // Registrar esta aba e ouvir eventos de fechamento
   useEffect(() => {
     localStorage.setItem(TAB_ID_KEY, TAB_ID);
-    
+
     const channel = new BroadcastChannel(CHANNEL_NAME);
-    
+
     channel.onmessage = (event) => {
       if (event.data.type === 'LOGIN_REALIZADO' || event.data.type === 'FECHAR_ABA') {
-        // Fecha esta aba se não for a página de destino
-        if (window.location.pathname !== '/login-estabelecimento' && 
+        if (window.location.pathname !== '/login-estabelecimento' &&
             window.location.pathname !== '/estabelecimento') {
           window.open('', '_self')?.close();
         }
@@ -99,14 +98,12 @@ export default function CadastroEstabelecimento() {
     setErro('');
     setSucesso('');
 
-    // Validações
     if (!nome || !email || !senha || !nomeEstabelecimento || !telefone) {
       setErro('Por favor, preencha todos os campos obrigatórios');
       setLoading(false);
       return;
     }
 
-    // Validar email
     const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     if (!emailValido) {
       setErro('Por favor, informe um email válido');
@@ -114,7 +111,6 @@ export default function CadastroEstabelecimento() {
       return;
     }
 
-    // Validar telefone (10 ou 11 dígitos)
     const telefoneLimpo = telefone.replace(/\D/g, '');
     if (telefoneLimpo.length < 10 || telefoneLimpo.length > 11) {
       setErro('Por favor, informe um telefone válido (com DDD)');
@@ -137,7 +133,6 @@ export default function CadastroEstabelecimento() {
     try {
       console.log('📝 Criando conta...', { email, nomeEstabelecimento });
 
-      // Verificar se já existe cadastro
       const { data: existente, error: buscaErro } = await supabase
         .from('estabelecimentos')
         .select('id, ativo')
@@ -155,7 +150,6 @@ export default function CadastroEstabelecimento() {
         throw new Error('Este email já está cadastrado e confirmado.');
       }
 
-      // Hash da senha
       const senhaHash = btoa(senha);
 
       console.log('📡 Tentando insert no Supabase...', {
@@ -163,7 +157,6 @@ export default function CadastroEstabelecimento() {
         temChave: !!supabaseAnonKey
       });
 
-      // Inserir na tabela estabelecimentos
       const { data: estabelecimento, error: insertError } = await supabase
         .from('estabelecimentos')
         .insert([
@@ -192,7 +185,6 @@ export default function CadastroEstabelecimento() {
 
       setSucesso('✅ Cadastro realizado com sucesso! Redirecionando para login...');
 
-      // Redirecionar para login, substituindo a página atual
       setTimeout(() => {
         localStorage.setItem(TAB_ID_KEY, TAB_ID);
         window.location.replace('/login-estabelecimento');
@@ -227,237 +219,231 @@ export default function CadastroEstabelecimento() {
         <meta name="theme-color" content="#10b981" />
       </Head>
 
-      <div className="min-h-screen bg-gradient-to-br from-green-600 via-green-500 to-emerald-600 flex items-center justify-center p-4 py-8">
-        <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 w-full max-w-md">
-          {/* Logo/Ícone */}
-          <div className="text-center mb-8">
-            <div className="w-24 h-24 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-              <span className="text-5xl">🏪</span>
-            </div>
-            <h1 className="text-3xl font-bold text-gray-800">Cadastrar Estabelecimento</h1>
-            <p className="text-gray-500 mt-2 text-sm">Crie sua conta para gerenciar pedidos</p>
-          </div>
+      <div className="cadastro-estabelecimento-bg">
+        <div className="cadastro-circle cadastro-circle-1"></div>
+        <div className="cadastro-circle cadastro-circle-2"></div>
+        <div className="cadastro-circle cadastro-circle-3"></div>
 
-          {/* Formulário */}
-          <form onSubmit={handleCadastro} className="space-y-4">
-            {erro && (
-              <div className="bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded-r-lg text-sm">
-                <span className="font-medium">⚠️ Erro:</span> {erro}
+        <div className="cadastro-container">
+          <div className="cadastro-card">
+            <div className="cadastro-logo-container">
+              <div className="cadastro-logo">
+                <span className="cadastro-logo-emoji">🏪</span>
               </div>
-            )}
-
-            {sucesso && (
-              <div className="bg-green-50 border-l-4 border-green-500 text-green-700 px-4 py-3 rounded-r-lg text-sm">
-                <span className="font-medium">✅ Sucesso:</span> {sucesso}
-              </div>
-            )}
-
-            <div className="space-y-1">
-              <label className="block text-gray-800 font-bold text-sm" htmlFor="nomeEstabelecimento">
-                Nome do Estabelecimento *
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg">🏪</span>
-                <input
-                  id="nomeEstabelecimento"
-                  type="text"
-                  value={nomeEstabelecimento}
-                  onChange={(e) => setNomeEstabelecimento(e.target.value)}
-                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-300 placeholder:font-normal font-black"
-                  placeholder="Ex: Pizzaria do João"
-                  required
-                />
-              </div>
+              <h1 className="cadastro-title">Cadastrar Estabelecimento</h1>
+              <p className="cadastro-subtitle">Crie sua conta para gerenciar pedidos</p>
             </div>
 
-            <div className="space-y-1">
-              <label className="block text-gray-800 font-bold text-sm" htmlFor="nome">
-                Seu Nome *
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg">👤</span>
-                <input
-                  id="nome"
-                  type="text"
-                  value={nome}
-                  onChange={(e) => setNome(e.target.value)}
-                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-300 placeholder:font-normal font-black"
-                  placeholder="Seu nome completo"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="block text-gray-800 font-bold text-sm" htmlFor="email">
-                Email *
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg">📧</span>
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-300 placeholder:font-normal font-black"
-                  placeholder="seu@email.com"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="block text-gray-800 font-bold text-sm" htmlFor="telefone">
-                Telefone / WhatsApp (com DDD) *
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg">📱</span>
-                <input
-                  id="telefone"
-                  type="tel"
-                  value={telefoneFormatado}
-                  onChange={handleTelefoneChange}
-                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-300 placeholder:font-normal font-black"
-                  placeholder="(11) 99999-9999"
-                  maxLength={15}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="block text-gray-800 font-bold text-sm" htmlFor="cnpj">
-                CNPJ (opcional)
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg">🏢</span>
-                <input
-                  id="cnpj"
-                  type="text"
-                  value={cnpjFormatado}
-                  onChange={handleCnpjChange}
-                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-300 placeholder:font-normal font-black"
-                  placeholder="00.000.000/0000-00"
-                  maxLength={19}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="block text-gray-800 font-bold text-sm" htmlFor="senha">
-                Senha *
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg">🔒</span>
-                <input
-                  id="senha"
-                  type={mostrarSenha ? 'text' : 'password'}
-                  value={senha}
-                  onChange={(e) => setSenha(e.target.value)}
-                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-12 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-300 placeholder:font-normal font-black"
-                  placeholder="Mínimo 6 caracteres"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setMostrarSenha(!mostrarSenha)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors duration-200 text-xl"
-                  title={mostrarSenha ? "Ocultar senha" : "Ver senha"}
-                >
-                  {mostrarSenha ? '👁️' : '🙈'}
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="block text-gray-800 font-bold text-sm" htmlFor="confirmarSenha">
-                Confirmar Senha *
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg">🔒</span>
-                <input
-                  id="confirmarSenha"
-                  type={mostrarConfirmarSenha ? 'text' : 'password'}
-                  value={confirmarSenha}
-                  onChange={(e) => setConfirmarSenha(e.target.value)}
-                  className="w-full border-2 border-gray-300 rounded-xl pl-10 pr-12 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white text-gray-900 placeholder-gray-300 placeholder:font-normal font-black"
-                  placeholder="Repita a senha"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setMostrarConfirmarSenha(!mostrarConfirmarSenha)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors duration-200 text-xl"
-                  title={mostrarConfirmarSenha ? "Ocultar senha" : "Ver senha"}
-                >
-                  {mostrarConfirmarSenha ? '👁️' : '🙈'}
-                </button>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading || !!sucesso}
-              className={`w-full font-bold py-4 px-4 rounded-xl shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 ${
-                loading || sucesso
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white'
-              }`}
-            >
-              {loading ? (
-                <>
-                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Criando conta...
-                </>
-              ) : sucesso ? (
-                <>
-                  <span>✅</span>
-                  Cadastro Realizado!
-                </>
-              ) : (
-                <>
-                  <span>🚀</span>
-                  Cadastrar
-                </>
+            <form onSubmit={handleCadastro} className="cadastro-form">
+              {erro && (
+                <div className="cadastro-alert cadastro-alert-error">
+                  <span className="font-medium">⚠️ Erro:</span> {erro}
+                </div>
               )}
-            </button>
 
-            <div className="text-center">
-              <p className="text-gray-600 text-sm">
-                Já tem conta?{' '}
-                <button
-                  type="button"
-                  onClick={() => {
-                    localStorage.setItem(TAB_ID_KEY, TAB_ID);
-                    window.location.replace('/login-estabelecimento');
-                  }}
-                  className="text-green-600 hover:text-green-700 font-semibold underline"
-                >
-                  Fazer Login
-                </button>
+              {sucesso && (
+                <div className="cadastro-alert cadastro-alert-success">
+                  <span className="font-medium">✅ Sucesso:</span> {sucesso}
+                </div>
+              )}
+
+              <div className="input-group">
+                <label className="input-label" htmlFor="nomeEstabelecimento">
+                  Nome do Estabelecimento *
+                </label>
+                <div className="input-wrapper">
+                  <span className="input-icon">🏪</span>
+                  <input
+                    id="nomeEstabelecimento"
+                    type="text"
+                    value={nomeEstabelecimento}
+                    onChange={(e) => setNomeEstabelecimento(e.target.value)}
+                    className="cadastro-input"
+                    placeholder="Ex: Pizzaria do João"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="input-group">
+                <label className="input-label" htmlFor="nome">
+                  Seu Nome *
+                </label>
+                <div className="input-wrapper">
+                  <span className="input-icon">👤</span>
+                  <input
+                    id="nome"
+                    type="text"
+                    value={nome}
+                    onChange={(e) => setNome(e.target.value)}
+                    className="cadastro-input"
+                    placeholder="Seu nome completo"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="input-group">
+                <label className="input-label" htmlFor="email">
+                  Email *
+                </label>
+                <div className="input-wrapper">
+                  <span className="input-icon">📧</span>
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="cadastro-input"
+                    placeholder="seu@email.com"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="input-group">
+                <label className="input-label" htmlFor="telefone">
+                  Telefone / WhatsApp (com DDD) *
+                </label>
+                <div className="input-wrapper">
+                  <span className="input-icon">📱</span>
+                  <input
+                    id="telefone"
+                    type="tel"
+                    value={telefoneFormatado}
+                    onChange={handleTelefoneChange}
+                    className="cadastro-input"
+                    placeholder="(11) 99999-9999"
+                    maxLength={15}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="input-group">
+                <label className="input-label" htmlFor="cnpj">
+                  CNPJ (opcional)
+                </label>
+                <div className="input-wrapper">
+                  <span className="input-icon">🏢</span>
+                  <input
+                    id="cnpj"
+                    type="text"
+                    value={cnpjFormatado}
+                    onChange={handleCnpjChange}
+                    className="cadastro-input"
+                    placeholder="00.000.000/0000-00"
+                    maxLength={19}
+                  />
+                </div>
+              </div>
+
+              <div className="input-group">
+                <label className="input-label" htmlFor="senha">
+                  Senha *
+                </label>
+                <div className="input-wrapper" style={{ position: 'relative' }}>
+                  <span className="input-icon">🔒</span>
+                  <input
+                    id="senha"
+                    type={mostrarSenha ? 'text' : 'password'}
+                    value={senha}
+                    onChange={(e) => setSenha(e.target.value)}
+                    className="cadastro-input"
+                    placeholder="Mínimo 6 caracteres"
+                    style={{ paddingRight: '2.75rem' }}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setMostrarSenha(!mostrarSenha)}
+                    className="toggle-senha"
+                    title={mostrarSenha ? "Ocultar senha" : "Ver senha"}
+                  >
+                    {mostrarSenha ? '👁️' : '🙈'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="input-group">
+                <label className="input-label" htmlFor="confirmarSenha">
+                  Confirmar Senha *
+                </label>
+                <div className="input-wrapper" style={{ position: 'relative' }}>
+                  <span className="input-icon">🔒</span>
+                  <input
+                    id="confirmarSenha"
+                    type={mostrarConfirmarSenha ? 'text' : 'password'}
+                    value={confirmarSenha}
+                    onChange={(e) => setConfirmarSenha(e.target.value)}
+                    className="cadastro-input"
+                    placeholder="Repita a senha"
+                    style={{ paddingRight: '2.75rem' }}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setMostrarConfirmarSenha(!mostrarConfirmarSenha)}
+                    className="toggle-senha"
+                    title={mostrarConfirmarSenha ? "Ocultar senha" : "Ver senha"}
+                  >
+                    {mostrarConfirmarSenha ? '👁️' : '🙈'}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading || !!sucesso}
+                className={`cadastro-button ${loading || sucesso ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <span className="cadastro-button-content">
+                  {loading ? (
+                    <>
+                      <svg className="spinner h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Criando conta...
+                    </>
+                  ) : sucesso ? (
+                    <>
+                      <span>✅</span>
+                      Cadastro Realizado!
+                    </>
+                  ) : (
+                    <>
+                      <span>🚀</span>
+                      Cadastrar
+                    </>
+                  )}
+                </span>
+              </button>
+
+              <div className="cadastro-footer-text">
+                <p className="text-gray-600 text-sm">
+                  Já tem conta?{' '}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      localStorage.setItem(TAB_ID_KEY, TAB_ID);
+                      window.location.replace('/login-estabelecimento');
+                    }}
+                    className="cadastro-link"
+                  >
+                    Fazer Login
+                  </button>
+                </p>
+              </div>
+
+
+            </form>
+
+            <div className="cadastro-security">
+              <p className="security-text">
+                🔒 Seus dados estão seguros e protegidos
               </p>
             </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                localStorage.setItem(TAB_ID_KEY, TAB_ID);
-                window.location.replace('/');
-              }}
-              className={`w-full font-bold py-4 px-4 rounded-xl shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white`}
-            >
-              ← Voltar
-            </button>
-          </form>
-
-          {/* Rodapé */}
-          <div className="text-center mt-6">
-            <p className="text-gray-500 text-xs">
-              🔒 Seus dados estão seguros e protegidos
-            </p>
           </div>
         </div>
       </div>

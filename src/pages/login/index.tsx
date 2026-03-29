@@ -131,8 +131,8 @@ export default function Login() {
 
       // Mensagem com confirmação do nome
       const mensagem = nomeParcial
-        ? `✅ Código gerado para: ${nomeParcial}\n\nEm produção, este código seria enviado por SMS/WhatsApp.\n\nPara teste, o código é: ${token}`
-        : `✅ Código de recuperação gerado!\n\nPara teste, o código é: ${token}`;
+        ? `✅ Código gerado para: ${nomeParcial}\n\nO código de confirmação é: ${token}`
+        : `✅ Código de recuperação gerado!\n\nO código de confirmação é: ${token}`;
       
       alert(mensagem);
       
@@ -295,7 +295,7 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => setMostrarRecuperacao(true)}
-                  className="text-sm text-green-600 hover:text-green-700 font-medium underline"
+                  className="recuperacao-senha-link"
                 >
                   🔑 Esqueci minha senha
                 </button>
@@ -304,11 +304,7 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={loading}
-                className={`submit-button ${
-                  loading
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white'
-                }`}
+                className={`submit-button ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <span className="submit-button-content">
                   {loading ? (
@@ -356,8 +352,8 @@ export default function Login() {
 
       {/* Modal de Recuperação de Senha */}
       {mostrarRecuperacao && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 relative">
+        <div className="modal-overlay">
+          <div className="modal-content">
             <button
               onClick={() => {
                 setMostrarRecuperacao(false);
@@ -368,13 +364,13 @@ export default function Login() {
                 setConfirmarNovaSenha('');
                 setNomeParcialEntregador('');
               }}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl font-bold"
+              className="modal-close"
             >
               ✕
             </button>
 
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">🔑 Recuperação de Senha</h2>
-            <p className="text-gray-600 text-sm mb-6">
+            <h2 className="modal-title">🔑 Recuperação de Senha</h2>
+            <p className="modal-subtitle">
               {etapaRecuperacao === 1 && 'Digite seu telefone para receber o código de recuperação'}
               {etapaRecuperacao === 2 && 'Digite o código recebido para continuar'}
               {etapaRecuperacao === 3 && 'Crie uma nova senha para sua conta'}
@@ -392,7 +388,7 @@ export default function Login() {
                     value={telefoneRecuperacao}
                     onChange={(e) => setTelefoneRecuperacao(e.target.value)}
                     placeholder="(00) 00000-0000"
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+                    className="modal-input"
                     required
                   />
                 </div>
@@ -400,11 +396,7 @@ export default function Login() {
                 <button
                   type="submit"
                   disabled={loadingRecuperacao || !telefoneRecuperacao}
-                  className={`w-full py-3 rounded-xl font-bold text-white text-lg transition-all ${
-                    loadingRecuperacao || !telefoneRecuperacao
-                      ? 'bg-gray-400 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg'
-                  }`}
+                  className="modal-button"
                 >
                   {loadingRecuperacao ? '⏳ Enviando...' : '📱 Enviar Código'}
                 </button>
@@ -416,17 +408,15 @@ export default function Login() {
               <form onSubmit={handleValidarToken} className="space-y-4">
                 {/* Confirmação do Nome */}
                 {nomeParcialEntregador && (
-                  <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl">✅</span>
-                      <div>
-                        <p className="text-sm font-medium text-green-800">Entregador encontrado:</p>
-                        <p className="text-lg font-bold text-green-900">{nomeParcialEntregador}</p>
-                      </div>
+                  <div className="modal-info">
+                    <span className="modal-info-icon">✅</span>
+                    <div className="modal-info-text">
+                      <p className="modal-info-title">Entregador encontrado:</p>
+                      <p className="modal-info-value">{nomeParcialEntregador}</p>
                     </div>
                   </div>
                 )}
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     📝 Código de Recuperação
@@ -436,32 +426,23 @@ export default function Login() {
                     value={tokenRecuperacao}
                     onChange={(e) => setTokenRecuperacao(e.target.value)}
                     placeholder="Digite o código recebido"
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+                    className="modal-input"
                     required
                   />
-                  {tokenEnviado && (
-                    <p className="text-xs text-green-600 mt-2 bg-green-50 p-2 rounded">
-                      💡 Código para teste: <strong>{tokenEnviado}</strong>
-                    </p>
-                  )}
                 </div>
 
-                <div className="flex gap-3">
+                <div className="modal-footer">
                   <button
                     type="button"
                     onClick={() => setEtapaRecuperacao(1)}
-                    className="flex-1 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-xl transition-all"
+                    className="modal-button modal-button-secondary"
                   >
                     ⬅️ Voltar
                   </button>
                   <button
                     type="submit"
                     disabled={loadingRecuperacao || !tokenRecuperacao}
-                    className={`flex-1 py-3 rounded-xl font-bold text-white text-lg transition-all ${
-                      loadingRecuperacao || !tokenRecuperacao
-                        ? 'bg-gray-400 cursor-not-allowed'
-                        : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg'
-                    }`}
+                    className="modal-button"
                   >
                     {loadingRecuperacao ? '⏳ Validando...' : '✅ Validar'}
                   </button>
@@ -482,7 +463,7 @@ export default function Login() {
                     onChange={(e) => setNovaSenha(e.target.value)}
                     placeholder="Digite sua nova senha"
                     minLength={4}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+                    className="modal-input"
                     required
                   />
                 </div>
@@ -497,7 +478,7 @@ export default function Login() {
                     onChange={(e) => setConfirmarNovaSenha(e.target.value)}
                     placeholder="Confirme sua nova senha"
                     minLength={4}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+                    className="modal-input"
                     required
                   />
                 </div>
@@ -505,11 +486,7 @@ export default function Login() {
                 <button
                   type="submit"
                   disabled={loadingRecuperacao || !novaSenha || !confirmarNovaSenha}
-                  className={`w-full py-3 rounded-xl font-bold text-white text-lg transition-all ${
-                    loadingRecuperacao || !novaSenha || !confirmarNovaSenha
-                      ? 'bg-gray-400 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg'
-                  }`}
+                  className="modal-button"
                 >
                   {loadingRecuperacao ? '⏳ Salvando...' : '💾 Salvar Nova Senha'}
                 </button>

@@ -42,3 +42,17 @@ SELECT column_name, data_type
 FROM information_schema.columns 
 WHERE table_name = 'entregadores' 
   AND column_name IN ('token_recuperacao', 'token_expiracao');
+
+-- =============================================
+-- RECUPERAÇÃO DE SENHA ESTABELECIMENTO
+-- =============================================
+-- 3. Adicionar colunas para recuperação de senha em estabelecimentos
+ALTER TABLE public.estabelecimentos
+ADD COLUMN IF NOT EXISTS token_recuperacao TEXT,
+ADD COLUMN IF NOT EXISTS token_expiracao TIMESTAMPTZ;
+
+CREATE INDEX IF NOT EXISTS idx_estabelecimentos_token_recuperacao 
+ON estabelecimentos(token_recuperacao);
+
+COMMENT ON COLUMN public.estabelecimentos.token_recuperacao IS 'Token para recuperação de senha';
+COMMENT ON COLUMN public.estabelecimentos.token_expiracao IS 'Data/hora de expiração do token de recuperação';

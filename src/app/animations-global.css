@@ -1013,6 +1013,20 @@
   border-color: rgba(255, 255, 255, 0.3);
 }
 
+.btn-gray {
+  background: linear-gradient(135deg, var(--gray-600), var(--gray-700));
+  color: white;
+  box-shadow: 0 10px 40px rgba(75, 85, 99, 0.4),
+              0 0 20px rgba(107, 114, 128, 0.2);
+}
+
+.btn-gray:hover:not(:disabled) {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 20px 60px rgba(75, 85, 99, 0.5),
+              0 0 30px rgba(107, 114, 128, 0.4);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
 .btn-white {
   background: white;
   color: var(--green-600);
