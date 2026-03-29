@@ -606,11 +606,8 @@ export default function Pedidos() {
         <meta name="theme-color" content="#10b981" />
       </Head>
 
-      <div className="login-bg min-h-screen">
-        {/* Círculos decorativos */}
-        <div className="decorative-circle-login decorative-circle-login-1"></div>
-        <div className="decorative-circle-login decorative-circle-login-2"></div>
-        <div className="decorative-circle-login decorative-circle-login-3"></div>
+      {/* Container Principal Mobile Native (100% largura) */}
+      <div className="min-h-screen bg-gray-50 flex flex-col pb-16 relative">
 
         {/* Aviso de som - oculto a pedido */}
         <div className="hidden">
@@ -642,110 +639,89 @@ export default function Pedidos() {
           </div>
         </div>
 
-        {/* Header */}
-        <header className="p-4">
-          {/* Card de Perfil do Entregador */}
-          <div className="login-card bg-white/95 backdrop-blur-xl max-w-4xl mx-auto">
-            <div className="flex items-center gap-4">
-              {/* Foto do entregador */}
+        {/* Header Header/Perfil Mobile-First */}
+        <header className="bg-white px-5 pt-8 pb-5 rounded-b-[2rem] shadow-sm z-10">
+          <div className="flex items-center gap-4 mb-6">
+            {/* Foto do entregador */}
+            <div className="relative">
               {entregador?.foto_url ? (
                 <img
                   src={entregador.foto_url}
                   alt={entregador.nome}
-                  className="w-20 h-20 rounded-full object-cover border-4 border-blue-100 shadow-lg"
+                  className="w-16 h-16 rounded-full object-cover border-2 border-blue-500 shadow-md"
                 />
               ) : (
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center border-4 border-blue-100 shadow-lg">
-                  <span className="text-4xl">🛵</span>
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-md">
+                  <span className="text-3xl">🛵</span>
                 </div>
               )}
-
-              {/* Informações do entregador */}
-              <div className="flex-1">
-                <h1 className="text-xl font-bold text-gray-800">🛵 {entregador?.nome || 'Carregando...'}</h1>
-                {entregador?.placa_moto && (
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="text-lg">🏍️</span>
-                    <span className="text-sm font-bold text-white bg-blue-600 px-3 py-1 rounded font-mono">
-                      {entregador.placa_moto}
-                    </span>
-                  </div>
-                )}
-              </div>
+              {entregador?.placa_moto && (
+                <div className="absolute -bottom-2 -right-2 bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full border-2 border-white shadow-sm">
+                  {entregador.placa_moto}
+                </div>
+              )}
             </div>
+
+            {/* Informações do entregador */}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-gray-500 font-medium">Bem-vindo(a),</p>
+              <h1 className="text-xl font-extrabold text-gray-800 tracking-tight leading-none mt-1 truncate">
+                {entregador?.nome || 'Carregando...'}
+              </h1>
+            </div>
+
+            {/* Ação: Sair (No canto superior direito) */}
+            <button
+              onClick={handleLogout}
+              className="w-10 h-10 rounded-full bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-100 transition-colors flex-shrink-0"
+              title="Sair"
+            >
+              <span className="text-xl">👋</span>
+            </button>
           </div>
 
-          {/* Ações */}
-          <div className="flex gap-2 mb-4 mt-4">
+          {/* Grid de Ações */}
+          <div className="grid grid-cols-3 gap-3 mb-6">
             <button
               onClick={handleAtivarSomManualmente}
-              className="flex-1 bg-white hover:bg-gray-50 text-blue-600 px-4 py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 active:scale-95 transition-transform shadow-lg border-2 border-blue-100"
-              title="Ativar/Testar som de notificação"
+              className="flex flex-col items-center justify-center p-3 bg-blue-50 hover:bg-blue-100 rounded-2xl text-blue-600 transition-colors"
             >
-              <span className="text-lg">🔔</span>
-              <span>Som</span>
+              <span className="text-2xl mb-1">🔔</span>
+              <span className="text-xs font-semibold">Som</span>
             </button>
             <button
               onClick={() => setModalSaldoAberto(true)}
-              className="flex-1 bg-white hover:bg-gray-50 text-blue-600 px-4 py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 shadow-lg border-2 border-blue-100"
-              title="Ver saldo"
+              className="flex flex-col items-center justify-center p-3 bg-green-50 hover:bg-green-100 rounded-2xl text-green-600 transition-colors"
             >
-              <span className="text-lg">💰</span>
-              <span>Saldo</span>
+              <span className="text-2xl mb-1">💰</span>
+              <span className="text-xs font-semibold">Saldo</span>
             </button>
             <button
               onClick={() => setMostrarChavesPix(true)}
-              className="flex-1 bg-white hover:bg-gray-50 text-blue-600 px-4 py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 shadow-lg border-2 border-blue-100"
-              title="Chaves PIX"
+              className="flex flex-col items-center justify-center p-3 bg-purple-50 hover:bg-purple-100 rounded-2xl text-purple-600 transition-colors"
             >
-              <span className="text-lg">💠</span>
-              <span>PIX</span>
-            </button>
-            <button
-              onClick={handleLogout}
-              className="bg-red-500 hover:bg-red-600 text-white px-4 py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 shadow-lg"
-              title="Sair"
-            >
-              <span className="text-lg">🚪</span>
-              <span>Sair</span>
+              <span className="text-2xl mb-1">💠</span>
+              <span className="text-xs font-semibold">PIX</span>
             </button>
           </div>
 
-          {/* Tabs */}
-          <div className="flex mt-4 gap-2">
-            <button
-              onClick={() => setTabAtiva('disponiveis')}
-              className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
-                tabAtiva === 'disponiveis'
-                  ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg'
-                  : 'bg-white text-gray-600 hover:bg-gray-50 border-2 border-gray-200'
-              }`}
-            >
-              Disponíveis ({pedidosDisponiveis.length})
-            </button>
-            <button
-              onClick={() => setTabAtiva('meus')}
-              className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
-                tabAtiva === 'meus'
-                  ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg'
-                  : 'bg-white text-gray-600 hover:bg-gray-50 border-2 border-gray-200'
-              }`}
-            >
-              Meus Pedidos ({meusPedidos.length})
-            </button>
-          </div>
+          {/* Tabs movidas para a barra de navegação inferior */}
         </header>
 
-        <main className="p-4">
+        <main className="p-4 flex-1 overflow-y-auto">
           {loading ? (
-            <div className="flex items-center justify-center py-10">
-              <p className="text-gray-500">Carregando...</p>
+            <div className="flex flex-col items-center justify-center py-20">
+              <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+              <p className="text-gray-500 font-medium">Carregando pedidos...</p>
             </div>
           ) : tabAtiva === 'disponiveis' ? (
             pedidosDisponiveis.length === 0 ? (
-              <div className="text-center py-10">
-                <span className="text-6xl">📦</span>
-                <p className="text-gray-500 mt-4">Nenhum pedido disponível no momento</p>
+              <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
+                <div className="bg-gray-100 w-24 h-24 rounded-full flex items-center justify-center mb-6">
+                  <span className="text-5xl">📦</span>
+                </div>
+                <h3 className="text-lg font-bold text-gray-800 mb-2">Tudo tranquilo por enquanto</h3>
+                <p className="text-gray-500 text-sm leading-relaxed">Nenhum pedido disponível no momento. Fique conectado, logo aparece algum!</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -761,9 +737,12 @@ export default function Pedidos() {
               </div>
             )
           ) : meusPedidos.length === 0 ? (
-            <div className="text-center py-10">
-              <span className="text-6xl">🚗</span>
-              <p className="text-gray-500 mt-4">Você ainda não tem pedidos</p>
+            <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
+              <div className="bg-gray-100 w-24 h-24 rounded-full flex items-center justify-center mb-6">
+                <span className="text-5xl">🛵</span>
+              </div>
+              <h3 className="text-lg font-bold text-gray-800 mb-2">Sua mochila está vazia</h3>
+              <p className="text-gray-500 text-sm leading-relaxed">Você ainda não aceitou nenhum pedido. Verifique a aba de disponíveis!</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -780,15 +759,58 @@ export default function Pedidos() {
           )}
         </main>
 
-        {/* Botão flutuante para mapa */}
+        {/* Botão flutuante para mapa (Ajustado) */}
         {meusPedidos.some((p) => p.status === 'em_transito') && (
           <button
             onClick={() => router.push('/mapa')}
-            className="fixed bottom-6 right-6 bg-white hover:bg-gray-50 text-blue-600 p-4 rounded-full shadow-lg border-2 border-blue-100"
+            className="fixed bottom-24 right-5 bg-white hover:bg-gray-50 text-blue-600 p-4 rounded-full shadow-2xl border-2 border-blue-500 z-30 transition-transform active:scale-95"
           >
-            🗺️
+            <span className="text-2xl">🗺️</span>
           </button>
         )}
+
+        {/* Barra de Navegação Inferior (Mobile-Native) */}
+        <nav className="fixed bottom-0 left-0 w-full bg-white border-t space-x-1 border-gray-200 z-40 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] pb-[env(safe-area-inset-bottom)]">
+          <div className="flex justify-around items-center h-16">
+            <button
+              onClick={() => setTabAtiva('disponiveis')}
+              className={`flex-1 flex flex-col items-center justify-center space-y-1 h-full relative transition-colors ${
+                tabAtiva === 'disponiveis' ? 'text-blue-600 bg-blue-50/50' : 'text-gray-400 hover:text-gray-600'
+              }`}
+            >
+              <div className="relative mt-1">
+                <span className="text-[22px]">📦</span>
+                {pedidosDisponiveis.length > 0 && (
+                  <span className="absolute -top-1.5 -right-2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white">
+                    {pedidosDisponiveis.length}
+                  </span>
+                )}
+              </div>
+              <span className={`text-[10px] font-bold ${tabAtiva === 'disponiveis' ? 'text-blue-600' : 'text-gray-500'}`}>
+                Disponíveis
+              </span>
+            </button>
+            <div className="w-px h-8 bg-gray-200"></div>
+            <button
+              onClick={() => setTabAtiva('meus')}
+              className={`flex-1 flex flex-col items-center justify-center space-y-1 h-full relative transition-colors ${
+                tabAtiva === 'meus' ? 'text-blue-600 bg-blue-50/50' : 'text-gray-400 hover:text-gray-600'
+              }`}
+            >
+              <div className="relative mt-1">
+                <span className="text-[22px]">🛵</span>
+                {meusPedidos.length > 0 && (
+                  <span className="absolute -top-1.5 -right-2 bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white">
+                    {meusPedidos.length}
+                  </span>
+                )}
+              </div>
+              <span className={`text-[10px] font-bold ${tabAtiva === 'meus' ? 'text-blue-600' : 'text-gray-500'}`}>
+                Meus Pedidos
+              </span>
+            </button>
+          </div>
+        </nav>
 
         {/* Modal de Saldo */}
         {entregador && (
