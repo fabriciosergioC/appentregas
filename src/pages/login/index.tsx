@@ -72,8 +72,14 @@ export default function Login() {
       // Limpar pedidos recusados ao logar novamente
       localStorage.removeItem('pedidos_recusados');
 
-      // Redirecionar para página de pedidos
-      router.push('/pedidos');
+      // Redirecionar para página de pedidos, fechando janela atual se foi aberta por script
+      setTimeout(() => {
+        if (window.opener) {
+          window.close();
+        } else {
+          router.push('/pedidos');
+        }
+      }, 100);
     } catch (error) {
       console.error('❌ Erro no login:', error);
 
@@ -209,7 +215,9 @@ export default function Login() {
                   Não tem conta?{' '}
                   <button
                     type="button"
-                    onClick={() => router.push('/cadastro-entregador')}
+                    onClick={() => {
+                      window.location.replace('/cadastro-entregador');
+                    }}
                     className="login-link"
                   >
                     Cadastrar Entregador

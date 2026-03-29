@@ -10,6 +10,13 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// Canal de comunicação entre abas
+const CHANNEL_NAME = 'app-entrega-channel';
+const TAB_ID_KEY = 'tab_id_estabelecimento';
+
+// Gerar ID único para esta aba
+const TAB_ID = typeof window !== 'undefined' ? Math.random().toString(36).substring(7) : 'server';
+
 export default function LoginEstabelecimento() {
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -18,6 +25,40 @@ export default function LoginEstabelecimento() {
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState<string | React.ReactNode>('');
   const [statusSupabase, setStatusSupabase] = useState<'online' | 'offline'>('online');
+
+  // Registrar esta aba e ouvir eventos de fechamento
+  useEffect(() => {
+    // Salvar ID desta aba no localStorage
+    localStorage.setItem(TAB_ID_KEY, TAB_ID);
+    
+    const channel = new BroadcastChannel(CHANNEL_NAME);
+    
+    channel.onmessage = (event) => {
+      if (event.data.type === 'FECHAR_ABA') {
+        // Verificar se não é a aba de destino
+        const tabIdSalvo = localStorage.getItem(TAB_ID_KEY);
+        if (tabIdSalvo && tabIdSalvo !== event.data.destinoTabId) {
+          // Tentar fechar
+          window.open('', '_self')?.close();
+          // Fallback: redirecionar para home
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 100);
+        }
+      }
+      
+      if (event.data.type === 'LOGIN_REALIZADO') {
+        // Fecha esta aba se não for a página de destino
+        if (window.location.pathname !== '/estabelecimento') {
+          window.open('', '_self')?.close();
+        }
+      }
+    };
+
+    return () => {
+      channel.close();
+    };
+  }, []);
 
   // Verificar se Supabase está configurado
   useEffect(() => {
@@ -97,7 +138,20 @@ export default function LoginEstabelecimento() {
       // Aguardar próximo tick para garantir que localStorage foi salvo
       setTimeout(() => {
         console.log('🔄 Redirecionando para estabelecimento...');
-        window.location.href = '/estabelecimento';
+        
+        // Enviar mensagem para outras abas fecharem
+        const channel = new BroadcastChannel(CHANNEL_NAME);
+        channel.postMessage({ 
+          type: 'LOGIN_REALIZADO',
+          destinoTabId: TAB_ID 
+        });
+        channel.close();
+        
+        // Salvar ID no localStorage para a próxima página
+        localStorage.setItem(TAB_ID_KEY, TAB_ID);
+        
+        // Usar replace para não acumular histórico
+        window.location.replace('/estabelecimento');
       }, 100);
     } catch (error) {
       console.error('❌ Erro no login:', error);
@@ -236,7 +290,10 @@ export default function LoginEstabelecimento() {
                   Não tem conta?{' '}
                   <button
                     type="button"
-                    onClick={() => router.push('/cadastro-estabelecimento')}
+                    onClick={() => {
+                      localStorage.setItem(TAB_ID_KEY, TAB_ID);
+                      window.location.replace('/cadastro-estabelecimento');
+                    }}
                     className="login-link"
                   >
                     Cadastre-se

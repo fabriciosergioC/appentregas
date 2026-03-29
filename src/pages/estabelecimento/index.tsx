@@ -88,6 +88,7 @@ export default function Estabelecimento() {
   const [mostrarRetiradas, setMostrarRetiradas] = useState(false);
   const [solicitacoesRetirada, setSolicitacoesRetirada] = useState<any[]>([]);
   const [carregandoRetiradas, setCarregandoRetiradas] = useState(false);
+  const [menuExtraAberto, setMenuExtraAberto] = useState(false);
 
   // Estados para produtos
   const [produtos, setProdutos] = useState<any[]>([]);
@@ -101,6 +102,8 @@ export default function Estabelecimento() {
   const [imagemPreview, setImagemPreview] = useState<string | null>(null);
   const [loadingProduto, setLoadingProduto] = useState(false);
   const [filtroProduto, setFiltroProduto] = useState('');
+  const [produtoEditando, setProdutoEditando] = useState<any | null>(null);
+  const [mostrarModalEdicao, setMostrarModalEdicao] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Estados para chaves PIX
@@ -110,6 +113,14 @@ export default function Estabelecimento() {
   const [bancoPix, setBancoPix] = useState('');
   const [chavesPixSalvas, setChavesPixSalvas] = useState<any[]>([]);
   const [loadingChavePix, setLoadingChavePix] = useState(false);
+
+  // ============ FUNÇÕES DE NAVEGAÇÃO DO MENU ============
+  const handleMenuClick = (secao: 'pedidos' | 'fila' | 'produtos' | 'pix' | 'retiradas') => {
+    setMostrarFilaPedidos(secao === 'fila');
+    setMostrarCadastroProduto(secao === 'produtos');
+    setMostrarChavesPix(secao === 'pix');
+    setMostrarRetiradas(secao === 'retiradas');
+  };
 
   // ============ FUNÇÕES DE PRODUTOS ============
   
@@ -172,6 +183,32 @@ export default function Estabelecimento() {
   const handleAtualizarProduto = async (id: string, atualizacoes: any) => {
     try { const { error } = await supabase.from('produtos').update(atualizacoes).eq('id', id); if (error) throw error; carregarProdutos(); }
     catch (err) { alert('Erro ao atualizar'); }
+  };
+
+  // Abrir modal de edição
+  const handleAbrirEdicao = (produto: any) => {
+    setProdutoEditando({ ...produto });
+    setMostrarModalEdicao(true);
+  };
+
+  // Salvar edição
+  const handleSalvarEdicao = async () => {
+    if (!produtoEditando) return;
+    try {
+      const { error } = await supabase.from('produtos').update({
+        nome: produtoEditando.nome,
+        descricao: produtoEditando.descricao,
+        preco: produtoEditando.preco,
+        categoria: produtoEditando.categoria,
+      }).eq('id', produtoEditando.id);
+      if (error) throw error;
+      alert('✅ Produto atualizado!');
+      setMostrarModalEdicao(false);
+      setProdutoEditando(null);
+      carregarProdutos();
+    } catch (err) {
+      alert('Erro: ' + (err as Error).message);
+    }
   };
 
   // Excluir produto
@@ -351,31 +388,46 @@ export default function Estabelecimento() {
     }
   }, [mostrarCadastroProduto, estabelecimentoId]);
 
-  // Carregar chaves PIX quando mostrarChavesPix for true
+  // Carregar seção ativa (unificado para evitar conflitos de scroll)
   useEffect(() => {
-    if (mostrarChavesPix && estabelecimentoId) {
-      carregarChavesPix();
-    }
-  }, [mostrarChavesPix, estabelecimentoId]);
+    if (!estabelecimentoId) return;
+    
+    // Scroll automático para a seção ativa
+    setTimeout(() => {
+      let elementoId = null;
+      
+      if (mostrarCadastroProduto) {
+        carregarProdutos();
+        elementoId = 'secao-produtos';
+      } else if (mostrarChavesPix) {
+        carregarChavesPix();
+        elementoId = 'secao-chaves-pix';
+      } else if (mostrarRetiradas) {
+        carregarRetiradas();
+        elementoId = 'secao-retiradas';
+      }
+      
+      if (elementoId) {
+        const elemento = document.getElementById(elementoId);
+        if (elemento) {
+          elemento.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          elemento.focus();
+        }
+      }
+    }, 100);
+  }, [mostrarCadastroProduto, mostrarChavesPix, mostrarRetiradas, estabelecimentoId]);
 
-  // Carregar retiradas quando mostrarRetiradas for true
-  useEffect(() => {
-    if (mostrarRetiradas) {
-      carregarRetiradas();
-    }
-  }, [mostrarRetiradas]);
-
-  // Timeout de inatividade - 1 minuto
+  // Timeout de inatividade - 5 minutos
   useEffect(() => {
     if (typeof window === 'undefined' || !usuarioLogado) return;
 
-    const TEMPO_INATIVIDADE_MS = 60 * 1000; // 1 minuto
+    const TEMPO_INATIVIDADE_MS = 5 * 60 * 1000; // 5 minutos
     let timeoutId: NodeJS.Timeout;
 
     const resetarTimeout = () => {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
-        console.log('⏰ Tempo de inatividade atingido (1 minuto), fazendo logout...');
+        console.log('⏰ Tempo de inatividade atingido (5 minutos), fazendo logout...');
         localStorage.removeItem('estabelecimento_user');
         localStorage.removeItem('nome_estabelecimento');
         router.replace('/login-estabelecimento');
@@ -896,7 +948,7 @@ export default function Estabelecimento() {
                 )}
               </button>
               <button
-                onClick={() => setMostrarCadastroProduto(true)}
+                onClick={() => handleMenuClick('produtos')}
                 className={`w-full font-medium py-3 px-4 rounded-lg transition-all flex items-center gap-3 text-left ${
                   mostrarCadastroProduto
                     ? 'bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-300'
@@ -907,7 +959,7 @@ export default function Estabelecimento() {
                 Produtos
               </button>
               <button
-                onClick={() => setMostrarChavesPix(true)}
+                onClick={() => handleMenuClick('pix')}
                 className={`w-full font-medium py-3 px-4 rounded-lg transition-all flex items-center gap-3 text-left ${
                   mostrarChavesPix
                     ? 'bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-300'
@@ -915,18 +967,7 @@ export default function Estabelecimento() {
                 }`}
               >
                 <span className="text-xl">💠</span>
-                Chaves PIX
-              </button>
-              <button
-                onClick={() => setMostrarRetiradas(true)}
-                className={`w-full font-medium py-3 px-4 rounded-lg transition-all flex items-center gap-3 text-left ${
-                  mostrarRetiradas
-                    ? 'bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-300'
-                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                }`}
-              >
-                <span className="text-xl">🏦</span>
-                Retiradas
+                Cadastrar Chave PIX
               </button>
             </nav>
           </div>
@@ -945,19 +986,63 @@ export default function Estabelecimento() {
               <span className={`w-3 h-3 rounded-full ${
                 statusConexao === 'online' ? 'bg-green-400' : 'bg-red-400'
               }`}></span>
-              <span className="text-xs">
+              <span className="text-xs hidden xl:inline">
                 {statusConexao === 'online' ? '✅ Online' : '❌ Offline'}
               </span>
-              <button
-                onClick={() => {
-                  carregarPagamentos();
-                  setModalPagamentoAberto(true);
-                }}
-                className="bg-white hover:bg-gray-100 text-red-600 font-medium py-2 px-4 rounded-lg transition-all duration-200 flex items-center gap-2 text-sm shadow-lg"
-                title="Pagar entregadores"
-              >
-                💰 Pagamentos
-              </button>
+              
+              {/* Menu Dropdown - Chaves PIX, Retiradas e Pagamentos */}
+              <div className="relative">
+                <button
+                  onClick={() => setMenuExtraAberto(!menuExtraAberto)}
+                  className="bg-white hover:bg-gray-100 text-red-600 font-medium py-2 px-4 rounded-lg transition-all duration-200 flex items-center gap-2 text-sm shadow-lg"
+                >
+                  <span className="text-lg">🚴</span>
+                  <span>Entregador</span>
+                  <span className={`text-xs transition-transform ${menuExtraAberto ? 'rotate-180' : ''}`}>▼</span>
+                </button>
+                
+                {menuExtraAberto && (
+                  <>
+                    {/* Overlay para fechar ao clicar fora */}
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setMenuExtraAberto(false)}
+                    />
+                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl z-20 overflow-hidden">
+                      <button
+                        onClick={() => {
+                          handleMenuClick('retiradas');
+                          setMenuExtraAberto(false);
+                        }}
+                        className={`w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-all ${
+                          mostrarRetiradas ? 'bg-red-50 text-red-600' : 'text-gray-700'
+                        }`}
+                      >
+                        <span className="text-xl">🏦</span>
+                        <div>
+                          <div className="font-medium text-sm">Retiradas</div>
+                          <div className="text-xs text-gray-500">Solicitações</div>
+                        </div>
+                      </button>
+                      <button
+                        onClick={() => {
+                          carregarPagamentos();
+                          setModalPagamentoAberto(true);
+                          setMenuExtraAberto(false);
+                        }}
+                        className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-all border-t border-gray-100 text-gray-700"
+                      >
+                        <span className="text-xl">💰</span>
+                        <div>
+                          <div className="font-medium text-sm">Pagamentos</div>
+                          <div className="text-xs text-gray-500">Pagar entregadores</div>
+                        </div>
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+              
               <button
                 onClick={handleLogout}
                 className="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 flex items-center gap-2 text-sm"
@@ -969,11 +1054,11 @@ export default function Estabelecimento() {
         </header>
 
         {/* Mobile Navigation Bar */}
-        <nav className="fixed bottom-0 left-0 w-full bg-white shadow-lg z-50 border-t border-gray-200 lg:hidden flex justify-around p-2 pb-safe">
+        <nav className="fixed bottom-0 left-0 w-full bg-white shadow-lg z-50 border-t border-gray-200 lg:hidden flex justify-around p-2 pb-safe overflow-x-auto">
           <button
-            onClick={() => { setMostrarFilaPedidos(false); setMostrarCadastroProduto(false); }}
-            className={`flex flex-col items-center p-2 rounded-lg flex-1 ${
-              !mostrarFilaPedidos && !mostrarCadastroProduto ? 'text-red-600 font-bold' : 'text-gray-500'
+            onClick={() => handleMenuClick('pedidos')}
+            className={`flex flex-col items-center p-2 rounded-lg flex-1 min-w-[60px] ${
+              !mostrarFilaPedidos && !mostrarCadastroProduto && !mostrarChavesPix && !mostrarRetiradas ? 'text-red-600 font-bold' : 'text-gray-500'
             }`}
           >
             <span className="text-2xl mb-1">📋</span>
@@ -981,9 +1066,9 @@ export default function Estabelecimento() {
           </button>
 
           <button
-            onClick={() => { setMostrarFilaPedidos(true); setMostrarCadastroProduto(false); }}
-            className={`flex flex-col items-center p-2 rounded-lg flex-1 relative ${
-              mostrarFilaPedidos && !mostrarCadastroProduto ? 'text-red-500 font-bold' : 'text-gray-500'
+            onClick={() => handleMenuClick('fila')}
+            className={`flex flex-col items-center p-2 rounded-lg flex-1 min-w-[60px] relative ${
+              mostrarFilaPedidos ? 'text-red-500 font-bold' : 'text-gray-500'
             }`}
           >
             <div className="relative">
@@ -996,10 +1081,10 @@ export default function Estabelecimento() {
             </div>
             <span className="text-xs">Fila</span>
           </button>
-          
+
           <button
-            onClick={() => setMostrarCadastroProduto(true)}
-            className={`flex flex-col items-center p-2 rounded-lg flex-1 ${
+            onClick={() => handleMenuClick('produtos')}
+            className={`flex flex-col items-center p-2 rounded-lg flex-1 min-w-[60px] ${
               mostrarCadastroProduto ? 'text-red-600 font-bold' : 'text-gray-500'
             }`}
           >
@@ -1008,30 +1093,41 @@ export default function Estabelecimento() {
           </button>
 
           <button
-            onClick={() => setMostrarChavesPix(true)}
-            className={`flex flex-col items-center p-2 rounded-lg flex-1 ${
+            onClick={() => handleMenuClick('pix')}
+            className={`flex flex-col items-center p-2 rounded-lg flex-1 min-w-[60px] ${
               mostrarChavesPix ? 'text-red-600 font-bold' : 'text-gray-500'
             }`}
           >
             <span className="text-2xl mb-1">💠</span>
-            <span className="text-xs">Chaves PIX</span>
+            <span className="text-xs">PIX</span>
           </button>
 
           <button
-            onClick={() => setMostrarRetiradas(true)}
-            className={`flex flex-col items-center p-2 rounded-lg flex-1 ${
+            onClick={() => handleMenuClick('retiradas')}
+            className={`flex flex-col items-center p-2 rounded-lg flex-1 min-w-[60px] ${
               mostrarRetiradas ? 'text-red-600 font-bold' : 'text-gray-500'
             }`}
           >
             <span className="text-2xl mb-1">🏦</span>
             <span className="text-xs">Retiradas</span>
           </button>
+
+          <button
+            onClick={() => {
+              carregarPagamentos();
+              setModalPagamentoAberto(true);
+            }}
+            className="flex flex-col items-center p-2 rounded-lg flex-1 min-w-[60px] text-gray-500"
+          >
+            <span className="text-2xl mb-1">💰</span>
+            <span className="text-xs">Pagar</span>
+          </button>
         </nav>
 
         <main className="p-4 max-w-4xl mx-auto lg:ml-64 mb-20">
           {/* Cadastro de Produtos */}
           {mostrarCadastroProduto && (
-            <section className="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <section id="secao-produtos" tabIndex={-1} className="bg-white rounded-lg shadow-lg p-6 mb-6 outline-none">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                   <span className="text-2xl">🛍️</span>
@@ -1150,9 +1246,14 @@ export default function Estabelecimento() {
                               )}
                             </div>
                             <p className="text-xl font-black text-red-600">{produto.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
-                            {produto.categoria && <span className="text-xs text-gray-500">🏷️ {produto.categoria}</span>}
+                            {produto.categoria ? (
+                              <span className="text-xs text-gray-500">🏷️ {produto.categoria}</span>
+                            ) : (
+                              <span className="text-xs text-orange-500 font-medium">⚠️ Sem categoria</span>
+                            )}
                           </div>
                           <div className="flex flex-col gap-2">
+                            <button onClick={() => handleAbrirEdicao(produto)} className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-xs font-bold hover:bg-blue-200 transition-all">✏️ Editar</button>
                             <button onClick={() => handleAtualizarProduto(produto.id, { disponivel: !produto.disponivel })} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${produto.disponivel ? 'bg-red-50 text-red-700 hover:bg-red-100' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'}`}>
                               {produto.disponivel ? '⏸️' : '▶️'}
                             </button>
@@ -1167,9 +1268,87 @@ export default function Estabelecimento() {
             </section>
           )}
 
+          {/* Modal de Edição de Produto */}
+          {mostrarModalEdicao && produtoEditando && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                    <span className="text-2xl">✏️</span>
+                    Editar Produto
+                  </h3>
+                  <button onClick={() => setMostrarModalEdicao(false)} className="text-gray-500 hover:text-gray-700 text-lg">✕</button>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Nome *</label>
+                    <input
+                      type="text"
+                      value={produtoEditando.nome}
+                      onChange={(e) => setProdutoEditando({ ...produtoEditando, nome: e.target.value })}
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-red-200 focus:border-red-500 focus:outline-none transition-all"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
+                    <textarea
+                      value={produtoEditando.descricao || ''}
+                      onChange={(e) => setProdutoEditando({ ...produtoEditando, descricao: e.target.value })}
+                      rows={2}
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-red-200 focus:border-red-500 focus:outline-none transition-all"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Preço *</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={produtoEditando.preco}
+                        onChange={(e) => setProdutoEditando({ ...produtoEditando, preco: parseFloat(e.target.value) })}
+                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-red-200 focus:border-red-500 focus:outline-none transition-all"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">🏷️ Categoria *</label>
+                      <input
+                        type="text"
+                        value={produtoEditando.categoria || ''}
+                        onChange={(e) => setProdutoEditando({ ...produtoEditando, categoria: e.target.value })}
+                        placeholder="Ex: Pizzas"
+                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-red-200 focus:border-red-500 focus:outline-none transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setMostrarModalEdicao(false)}
+                      className="flex-1 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-xl transition-all"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSalvarEdicao}
+                      className="flex-1 py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-bold rounded-xl shadow-lg transition-all"
+                    >
+                      ✅ Salvar Alterações
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Gerenciamento de Chaves PIX */}
           {mostrarChavesPix && (
-            <section className="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <section id="secao-chaves-pix" tabIndex={-1} className="bg-white rounded-lg shadow-lg p-6 mb-6 outline-none">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                   <span className="text-2xl">💠</span>
@@ -1295,7 +1474,7 @@ export default function Estabelecimento() {
 
           {/* Gerenciamento de Retiradas */}
           {mostrarRetiradas && (
-            <section className="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <section id="secao-retiradas" tabIndex={-1} className="bg-white rounded-lg shadow-lg p-6 mb-6 outline-none">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                   <span className="text-2xl">🏦</span>

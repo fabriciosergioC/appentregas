@@ -39,6 +39,7 @@ export default function EstabelecimentoCard({ estabelecimento }: Estabelecimento
   const [mostrarProdutos, setMostrarProdutos] = useState(false);
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [loadingProdutos, setLoadingProdutos] = useState(false);
+  const [filtroCategoria, setFiltroCategoria] = useState<string>('');
 
   // Verificar se há itens no carrinho deste estabelecimento
   const itensNoCarrinho = estabelecimentoId === estabelecimento.id
@@ -76,6 +77,14 @@ export default function EstabelecimentoCard({ estabelecimento }: Estabelecimento
       setLoadingProdutos(false);
     }
   };
+
+  // Extrair categorias únicas
+  const categorias = Array.from(new Set(produtos.map(p => p.categoria).filter(Boolean))).sort() as string[];
+
+  // Filtrar produtos por categoria
+  const produtosFiltrados = filtroCategoria
+    ? produtos.filter(p => p.categoria === filtroCategoria)
+    : produtos;
 
   const handleWhatsApp = () => {
     if (!estabelecimento.telefone) return;
@@ -251,46 +260,93 @@ export default function EstabelecimentoCard({ estabelecimento }: Estabelecimento
                 ))}
               </div>
             ) : produtos.length > 0 ? (
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {produtos.map((produto) => (
-                  <div
-                    key={produto.id}
-                    className="flex gap-3 p-2 bg-gray-50 rounded hover:bg-gray-100 transition-colors border border-gray-100"
-                  >
-                    {produto.imagem_url ? (
-                      <img
-                        src={produto.imagem_url}
-                        alt={produto.nome}
-                        className="w-16 h-16 object-cover rounded-lg flex-shrink-0 border border-gray-200"
-                      />
-                    ) : (
-                      <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0 border border-gray-200">
-                        <span className="text-2xl">📦</span>
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0 flex flex-col justify-between">
-                      <div>
-                        <h4 className="font-medium text-gray-800 text-sm truncate">{produto.nome}</h4>
-                        {produto.descricao && (
-                          <p className="text-xs text-gray-500 truncate">{produto.descricao}</p>
-                        )}
-                      </div>
-                      <div className="flex items-center justify-between mt-1">
-                        <p className="text-green-600 font-bold text-sm">
-                          {produto.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                        </p>
+              <>
+                {/* Filtro de Categorias */}
+                {categorias.length > 0 && (
+                  <div className="mb-3">
+                    <div className="flex flex-wrap gap-2 justify-center">
+                      <button
+                        onClick={() => setFiltroCategoria('')}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                          filtroCategoria === ''
+                            ? 'bg-green-600 text-white shadow-md'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        📋 Todos
+                      </button>
+                      {categorias.map((categoria) => (
                         <button
-                          onClick={() => handleAdicionarAoCarrinho(produto)}
-                          className="bg-green-600 hover:bg-green-700 text-white font-medium py-1 px-3 rounded-lg text-xs transition-colors flex items-center gap-1"
+                          key={categoria}
+                          onClick={() => setFiltroCategoria(categoria)}
+                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                            filtroCategoria === categoria
+                              ? 'bg-green-600 text-white shadow-md'
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          }`}
                         >
-                          <span>➕</span>
-                          Adicionar
+                          🏷️ {categoria}
                         </button>
-                      </div>
+                      ))}
                     </div>
                   </div>
-                ))}
-              </div>
+                )}
+
+                {/* Lista de Produtos */}
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {produtosFiltrados.map((produto) => (
+                    <div
+                      key={produto.id}
+                      className="flex gap-3 p-2 bg-gray-50 rounded hover:bg-gray-100 transition-colors border border-gray-100"
+                    >
+                      {produto.imagem_url ? (
+                        <img
+                          src={produto.imagem_url}
+                          alt={produto.nome}
+                          className="w-16 h-16 object-cover rounded-lg flex-shrink-0 border border-gray-200"
+                        />
+                      ) : (
+                        <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0 border border-gray-200">
+                          <span className="text-2xl">📦</span>
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0 flex flex-col justify-between">
+                        <div>
+                          <h4 className="font-medium text-gray-800 text-sm truncate">{produto.nome}</h4>
+                          {produto.descricao && (
+                            <p className="text-xs text-gray-500 truncate">{produto.descricao}</p>
+                          )}
+                          {produto.categoria && (
+                            <span className="inline-block mt-1 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium">
+                              🏷️ {produto.categoria}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between mt-1">
+                          <p className="text-green-600 font-bold text-sm">
+                            {produto.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                          </p>
+                          <button
+                            onClick={() => handleAdicionarAoCarrinho(produto)}
+                            className="bg-green-600 hover:bg-green-700 text-white font-medium py-1 px-3 rounded-lg text-xs transition-colors flex items-center gap-1"
+                          >
+                            <span>➕</span>
+                            Adicionar
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Mensagem se não houver produtos na categoria */}
+                {produtosFiltrados.length === 0 && (
+                  <div className="text-center py-6 text-gray-500 text-sm">
+                    <span className="text-4xl block mb-2">🔍</span>
+                    Nenhum produto nesta categoria
+                  </div>
+                )}
+              </>
             ) : (
               <div className="text-center py-6 text-gray-500 text-sm">
                 <span className="text-4xl block mb-2">📦</span>

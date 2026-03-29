@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { createClient } from '@supabase/supabase-js';
@@ -9,6 +9,13 @@ import '../login-estabelecimento/login-animations.css';
 const supabaseUrl = 'https://lhvfjaimrsrbvketayck.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxodmZqYWltcnNyYnZrZXRheWNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3MzE2NjIsImV4cCI6MjA4OTMwNzY2Mn0.Y394p7pCANhbBeJNHmkUDBsbDZFOWSohF0Z9_7Xf11I';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// Canal de comunicação entre abas
+const CHANNEL_NAME = 'app-entrega-channel';
+const TAB_ID_KEY = 'tab_id_estabelecimento';
+
+// Gerar ID único para esta aba
+const TAB_ID = typeof window !== 'undefined' ? Math.random().toString(36).substring(7) : 'server';
 
 export default function CadastroEstabelecimento() {
   const router = useRouter();
@@ -26,6 +33,27 @@ export default function CadastroEstabelecimento() {
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState('');
   const [sucesso, setSucesso] = useState('');
+
+  // Registrar esta aba e ouvir eventos de fechamento
+  useEffect(() => {
+    localStorage.setItem(TAB_ID_KEY, TAB_ID);
+    
+    const channel = new BroadcastChannel(CHANNEL_NAME);
+    
+    channel.onmessage = (event) => {
+      if (event.data.type === 'LOGIN_REALIZADO' || event.data.type === 'FECHAR_ABA') {
+        // Fecha esta aba se não for a página de destino
+        if (window.location.pathname !== '/login-estabelecimento' && 
+            window.location.pathname !== '/estabelecimento') {
+          window.open('', '_self')?.close();
+        }
+      }
+    };
+
+    return () => {
+      channel.close();
+    };
+  }, []);
 
   // Formatar telefone enquanto digita
   const handleTelefoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -164,9 +192,10 @@ export default function CadastroEstabelecimento() {
 
       setSucesso('✅ Cadastro realizado com sucesso! Redirecionando para login...');
 
-      // Redirecionar para login após 2 segundos
+      // Redirecionar para login, substituindo a página atual
       setTimeout(() => {
-        router.push('/login-estabelecimento');
+        localStorage.setItem(TAB_ID_KEY, TAB_ID);
+        window.location.replace('/login-estabelecimento');
       }, 2000);
 
     } catch (error) {
@@ -401,7 +430,10 @@ export default function CadastroEstabelecimento() {
                 Já tem conta?{' '}
                 <button
                   type="button"
-                  onClick={() => router.push('/login-estabelecimento')}
+                  onClick={() => {
+                    localStorage.setItem(TAB_ID_KEY, TAB_ID);
+                    window.location.replace('/login-estabelecimento');
+                  }}
                   className="text-green-600 hover:text-green-700 font-semibold underline"
                 >
                   Fazer Login
@@ -411,7 +443,10 @@ export default function CadastroEstabelecimento() {
 
             <button
               type="button"
-              onClick={() => router.push('/')}
+              onClick={() => {
+                localStorage.setItem(TAB_ID_KEY, TAB_ID);
+                window.location.replace('/');
+              }}
               className={`w-full font-bold py-4 px-4 rounded-xl shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white`}
             >
               ← Voltar

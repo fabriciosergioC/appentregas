@@ -7,6 +7,12 @@ import PedidoCard from '@/components/pedidoCard/PedidoCard';
 import ModalSaldo from '@/components/modalSaldo/ModalSaldo';
 import { useNotificationSound } from '@/hooks/useNotificationSound';
 import '@/app/globals.css';
+import '../login-estabelecimento/login-animations.css';
+
+// Canal de comunicação entre abas
+const CHANNEL_NAME = 'app-entrega-channel';
+const TAB_ID_KEY = 'tab_id_entregador';
+const TAB_ID = typeof window !== 'undefined' ? Math.random().toString(36).substring(7) : 'server';
 
 export default function Pedidos() {
   const router = useRouter();
@@ -70,6 +76,71 @@ export default function Pedidos() {
   useEffect(() => {
     console.log('📊 Estado atual - Disponíveis:', pedidosDisponiveis.length, 'Meus:', meusPedidos.length, 'Tab:', tabAtiva);
   }, [pedidosDisponiveis, meusPedidos, tabAtiva]);
+
+  useEffect(() => {
+    // Registrar esta aba e ouvir eventos de fechamento
+    if (typeof window === 'undefined') return;
+    
+    localStorage.setItem(TAB_ID_KEY, TAB_ID);
+    
+    const channel = new BroadcastChannel(CHANNEL_NAME);
+    
+    channel.onmessage = (event) => {
+      if (event.data.type === 'LOGOUT_REALIZADO') {
+        // Fecha esta aba se não for a página de login
+        if (window.location.pathname !== '/login') {
+          window.location.replace('/login');
+        }
+      }
+    };
+
+    return () => {
+      channel.close();
+    };
+  }, []);
+
+  // Timeout de inatividade - 5 minutos
+  useEffect(() => {
+    if (typeof window === 'undefined' || !entregador) return;
+
+    const TEMPO_INATIVIDADE_MS = 5 * 60 * 1000; // 5 minutos
+    let timeoutId: NodeJS.Timeout;
+
+    const resetarTimeout = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        console.log('⏰ Tempo de inatividade atingido (5 minutos), fazendo logout...');
+        localStorage.removeItem('entregador');
+        
+        // Enviar mensagem para outras abas fecharem
+        const channel = new BroadcastChannel(CHANNEL_NAME);
+        channel.postMessage({
+          type: 'LOGOUT_REALIZADO'
+        });
+        channel.close();
+        
+        router.replace('/login');
+      }, TEMPO_INATIVIDADE_MS);
+    };
+
+    // Eventos que resetam o timeout
+    const eventos = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+
+    eventos.forEach(evento => {
+      window.addEventListener(evento, resetarTimeout);
+    });
+
+    // Iniciar timeout
+    resetarTimeout();
+
+    // Limpar ao desmontar
+    return () => {
+      clearTimeout(timeoutId);
+      eventos.forEach(evento => {
+        window.removeEventListener(evento, resetarTimeout);
+      });
+    };
+  }, [router, entregador]);
 
   useEffect(() => {
     // Garantir que está rodando no cliente (browser)
@@ -398,6 +469,7 @@ export default function Pedidos() {
       setNomeTitularPix('');
       setBancoPix('');
       setTipoChavePix('cpf');
+      setMostrarChavesPix(false); // Fechar modal após sucesso
       carregarChavesPix();
     } catch (err) {
       alert('Erro ao cadastrar chave PIX: ' + (err as Error).message);
@@ -514,9 +586,16 @@ export default function Pedidos() {
   };
 
   const handleLogout = () => {
+    // Enviar mensagem para outras abas fecharem
+    const channel = new BroadcastChannel(CHANNEL_NAME);
+    channel.postMessage({ type: 'LOGOUT_REALIZADO' });
+    channel.close();
+    
     localStorage.removeItem('entregador');
     localStorage.removeItem('pedidos_recusados');
-    router.push('/login');
+    localStorage.removeItem(TAB_ID_KEY);
+    
+    window.location.replace('/login');
   };
 
   return (
@@ -527,7 +606,12 @@ export default function Pedidos() {
         <meta name="theme-color" content="#10b981" />
       </Head>
 
-      <div className="min-h-screen bg-gray-100">
+      <div className="login-bg min-h-screen">
+        {/* Círculos decorativos */}
+        <div className="decorative-circle-login decorative-circle-login-1"></div>
+        <div className="decorative-circle-login decorative-circle-login-2"></div>
+        <div className="decorative-circle-login decorative-circle-login-3"></div>
+
         {/* Aviso de som - oculto a pedido */}
         <div className="hidden">
           <div className={`border-l-4 p-3 text-sm ${temPedidoNovo ? 'bg-red-100 border-red-500 text-red-700 animate-pulse' : audioEnabled ? 'bg-green-100 border-green-500 text-green-700' : 'bg-yellow-100 border-yellow-500 text-yellow-700'}`}>
@@ -538,7 +622,7 @@ export default function Pedidos() {
               </span>
               <button
                 onClick={handleAtivarSomManualmente}
-                className="ml-auto bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs font-medium focus:ring-2 focus:ring-green-400"
+                className="ml-auto bg-white hover:bg-gray-50 text-blue-600 px-3 py-1 rounded text-xs font-medium focus:ring-2 focus:ring-blue-400 border-2 border-blue-100"
               >
                 Testar Som
               </button>
@@ -559,30 +643,30 @@ export default function Pedidos() {
         </div>
 
         {/* Header */}
-        <header className="bg-green-600 text-white p-4 shadow-md">
+        <header className="p-4">
           {/* Card de Perfil do Entregador */}
-          <div className="bg-gradient-to-r from-green-700 to-emerald-700 rounded-2xl p-4 mb-4 border border-white/20">
+          <div className="login-card bg-white/95 backdrop-blur-xl max-w-4xl mx-auto">
             <div className="flex items-center gap-4">
               {/* Foto do entregador */}
               {entregador?.foto_url ? (
                 <img
                   src={entregador.foto_url}
                   alt={entregador.nome}
-                  className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-lg"
+                  className="w-20 h-20 rounded-full object-cover border-4 border-blue-100 shadow-lg"
                 />
               ) : (
-                <div className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center border-4 border-white shadow-lg">
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center border-4 border-blue-100 shadow-lg">
                   <span className="text-4xl">🛵</span>
                 </div>
               )}
 
               {/* Informações do entregador */}
               <div className="flex-1">
-                <h1 className="text-xl font-bold">🛵 {entregador?.nome || 'Carregando...'}</h1>
+                <h1 className="text-xl font-bold text-gray-800">🛵 {entregador?.nome || 'Carregando...'}</h1>
                 {entregador?.placa_moto && (
                   <div className="flex items-center gap-2 mt-2">
                     <span className="text-lg">🏍️</span>
-                    <span className="text-sm font-bold text-yellow-300 bg-black/30 px-3 py-1 rounded font-mono">
+                    <span className="text-sm font-bold text-white bg-blue-600 px-3 py-1 rounded font-mono">
                       {entregador.placa_moto}
                     </span>
                   </div>
@@ -592,10 +676,10 @@ export default function Pedidos() {
           </div>
 
           {/* Ações */}
-          <div className="flex gap-2 mb-4">
+          <div className="flex gap-2 mb-4 mt-4">
             <button
               onClick={handleAtivarSomManualmente}
-              className="flex-1 bg-green-700 hover:bg-green-800 px-4 py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 active:scale-95 transition-transform border border-white/20"
+              className="flex-1 bg-white hover:bg-gray-50 text-blue-600 px-4 py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 active:scale-95 transition-transform shadow-lg border-2 border-blue-100"
               title="Ativar/Testar som de notificação"
             >
               <span className="text-lg">🔔</span>
@@ -603,7 +687,7 @@ export default function Pedidos() {
             </button>
             <button
               onClick={() => setModalSaldoAberto(true)}
-              className="flex-1 bg-green-700 hover:bg-green-800 px-4 py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 border border-white/20"
+              className="flex-1 bg-white hover:bg-gray-50 text-blue-600 px-4 py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 shadow-lg border-2 border-blue-100"
               title="Ver saldo"
             >
               <span className="text-lg">💰</span>
@@ -611,7 +695,7 @@ export default function Pedidos() {
             </button>
             <button
               onClick={() => setMostrarChavesPix(true)}
-              className="flex-1 bg-green-700 hover:bg-green-800 px-4 py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 border border-white/20"
+              className="flex-1 bg-white hover:bg-gray-50 text-blue-600 px-4 py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 shadow-lg border-2 border-blue-100"
               title="Chaves PIX"
             >
               <span className="text-lg">💠</span>
@@ -619,7 +703,7 @@ export default function Pedidos() {
             </button>
             <button
               onClick={handleLogout}
-              className="bg-red-600 hover:bg-red-700 px-4 py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 border border-white/20"
+              className="bg-red-500 hover:bg-red-600 text-white px-4 py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 shadow-lg"
               title="Sair"
             >
               <span className="text-lg">🚪</span>
@@ -633,8 +717,8 @@ export default function Pedidos() {
               onClick={() => setTabAtiva('disponiveis')}
               className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
                 tabAtiva === 'disponiveis'
-                  ? 'bg-white text-green-600'
-                  : 'bg-green-700 text-green-100'
+                  ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg'
+                  : 'bg-white text-gray-600 hover:bg-gray-50 border-2 border-gray-200'
               }`}
             >
               Disponíveis ({pedidosDisponiveis.length})
@@ -643,8 +727,8 @@ export default function Pedidos() {
               onClick={() => setTabAtiva('meus')}
               className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
                 tabAtiva === 'meus'
-                  ? 'bg-white text-green-600'
-                  : 'bg-green-700 text-green-100'
+                  ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg'
+                  : 'bg-white text-gray-600 hover:bg-gray-50 border-2 border-gray-200'
               }`}
             >
               Meus Pedidos ({meusPedidos.length})
@@ -700,7 +784,7 @@ export default function Pedidos() {
         {meusPedidos.some((p) => p.status === 'em_transito') && (
           <button
             onClick={() => router.push('/mapa')}
-            className="fixed bottom-6 right-6 bg-green-600 hover:bg-green-700 text-white p-4 rounded-full shadow-lg"
+            className="fixed bottom-6 right-6 bg-white hover:bg-gray-50 text-blue-600 p-4 rounded-full shadow-lg border-2 border-blue-100"
           >
             🗺️
           </button>
@@ -717,7 +801,15 @@ export default function Pedidos() {
 
         {/* Modal de Chaves PIX */}
         {mostrarChavesPix && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto"
+            onClick={(e) => {
+              // Fechar ao clicar fora
+              if (e.target === e.currentTarget) {
+                setMostrarChavesPix(false);
+              }
+            }}
+          >
             <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full my-8">
               <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
                 <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
@@ -793,10 +885,10 @@ export default function Pedidos() {
                   <button
                     type="submit"
                     disabled={loadingChavePix}
-                    className={`w-full py-2 rounded-lg font-bold text-white text-sm shadow-lg transition-all ${
+                    className={`w-full py-2 rounded-lg font-bold text-blue-600 text-sm shadow-lg transition-all border-2 border-blue-100 ${
                       loadingChavePix
-                        ? 'bg-gray-400 cursor-not-allowed'
-                        : 'bg-green-600 hover:bg-green-700 hover:shadow-xl'
+                        ? 'bg-gray-400 cursor-not-allowed text-white'
+                        : 'bg-white hover:bg-gray-50 hover:shadow-xl'
                     }`}
                   >
                     {loadingChavePix ? '⏳ Cadastrando...' : '✅ Cadastrar Chave PIX'}

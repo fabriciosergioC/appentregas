@@ -202,9 +202,13 @@ export default function CadastroEntregador() {
 
       setSucesso('✅ Cadastro realizado com sucesso! Redirecionando para login...');
 
-      // Redirecionar para login após 2 segundos
+      // Redirecionar para login após 2 segundos, fechando janela atual se foi aberta por script
       setTimeout(() => {
-        router.push('/login');
+        if (window.opener) {
+          window.close();
+        } else {
+          router.push('/login');
+        }
       }, 2000);
 
     } catch (error) {
@@ -467,7 +471,13 @@ export default function CadastroEntregador() {
                   Já tem conta?{' '}
                   <button
                     type="button"
-                    onClick={() => router.push('/login')}
+                    onClick={() => {
+                      // Fechar janela atual se foi aberta por script
+                      if (window.opener) {
+                        window.close();
+                      }
+                      router.push('/login');
+                    }}
                     className="login-link"
                   >
                     Fazer Login
