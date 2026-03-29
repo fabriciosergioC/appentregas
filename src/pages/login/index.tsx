@@ -22,6 +22,7 @@ export default function Login() {
   const [confirmarNovaSenha, setConfirmarNovaSenha] = useState('');
   const [etapaRecuperacao, setEtapaRecuperacao] = useState<1 | 2 | 3>(1);
   const [tokenEnviado, setTokenEnviado] = useState('');
+  const [nomeParcialEntregador, setNomeParcialEntregador] = useState('');
   const [loadingRecuperacao, setLoadingRecuperacao] = useState(false);
 
   // Verificar se Supabase está configurado
@@ -122,10 +123,21 @@ export default function Login() {
 
       // Em produção, o token seria enviado por SMS/WhatsApp
       // Aqui mostramos diretamente para teste
-      setTokenEnviado(resultado.data?.token || '');
+      const token = resultado.data?.token || '';
+      const nomeParcial = resultado.data?.nomeParcial || '';
+      
+      setTokenEnviado(token);
       setEtapaRecuperacao(2);
 
-      alert('✅ Código de recuperação gerado!\n\nEm produção, este código seria enviado por SMS/WhatsApp.\n\nPara teste, o código é: ' + (resultado.data?.token || 'N/A'));
+      // Mensagem com confirmação do nome
+      const mensagem = nomeParcial
+        ? `✅ Código gerado para: ${nomeParcial}\n\nEm produção, este código seria enviado por SMS/WhatsApp.\n\nPara teste, o código é: ${token}`
+        : `✅ Código de recuperação gerado!\n\nPara teste, o código é: ${token}`;
+      
+      alert(mensagem);
+      
+      // Salvar nome parcial para exibição no modal
+      setNomeParcialEntregador(nomeParcial);
     } catch (error) {
       console.error('Erro na recuperação:', error);
       alert('Erro ao solicitar recuperação. Verifique o telefone e tente novamente.');
@@ -354,6 +366,7 @@ export default function Login() {
                 setTokenRecuperacao('');
                 setNovaSenha('');
                 setConfirmarNovaSenha('');
+                setNomeParcialEntregador('');
               }}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl font-bold"
             >
@@ -401,6 +414,19 @@ export default function Login() {
             {/* Etapa 2: Validar código */}
             {etapaRecuperacao === 2 && (
               <form onSubmit={handleValidarToken} className="space-y-4">
+                {/* Confirmação do Nome */}
+                {nomeParcialEntregador && (
+                  <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">✅</span>
+                      <div>
+                        <p className="text-sm font-medium text-green-800">Entregador encontrado:</p>
+                        <p className="text-lg font-bold text-green-900">{nomeParcialEntregador}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     📝 Código de Recuperação

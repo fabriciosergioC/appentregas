@@ -116,7 +116,7 @@ export const entregadoresApi = {
     // Buscar entregador pelo telefone
     const { data: entregador, error: buscaError } = await supabase
       .from('entregadores')
-      .select('id, telefone')
+      .select('id, telefone, nome')
       .eq('telefone', telefone)
       .single();
 
@@ -125,9 +125,8 @@ export const entregadoresApi = {
       return { data: { solicitado: true }, error: null };
     }
 
-    // Gerar token aleatório
-    const token = Math.random().toString(36).substring(2, 15) + 
-                  Math.random().toString(36).substring(2, 15);
+    // Gerar token aleatório (6 dígitos numéricos para facilitar)
+    const token = Math.floor(100000 + Math.random() * 900000).toString();
     
     // Token expira em 1 hora
     const expiracao = new Date();
@@ -140,10 +139,22 @@ export const entregadoresApi = {
         token_expiracao: expiracao.toISOString(),
       })
       .eq('id', entregador.id)
-      .select()
+      .select('nome')
       .single();
 
-    return { data: { solicitado: true, token }, error };
+    // Retorna apenas parte do nome para confirmação (ex: "João S.")
+    const nomeParcial = data?.nome 
+      ? data.nome.split(' ')[0] + (data.nome.split(' ')[1] ? ' ' + data.nome.split(' ')[1][0] + '.' : '')
+      : '';
+
+    return { 
+      data: { 
+        solicitado: true, 
+        token,
+        nomeParcial
+      }, 
+      error 
+    };
   },
 
   // Validar token de recuperação
