@@ -297,12 +297,19 @@ export default function Estabelecimento() {
   const carregarRetiradas = async () => {
     setCarregandoRetiradas(true);
     try {
+      if (!estabelecimentoId) {
+        console.log('⚠️ Sem estabelecimento_id para carregar retiradas');
+        setSolicitacoesRetirada([]);
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('solicitacoes_retirada')
         .select(`
           *,
           entregador:entregadores(id, nome, telefone)
         `)
+        .eq('estabelecimento_id', estabelecimentoId)
         .order('criado_em', { ascending: false });
       if (error) throw error;
       setSolicitacoesRetirada(data || []);

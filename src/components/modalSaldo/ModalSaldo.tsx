@@ -54,14 +54,37 @@ export default function ModalSaldo({ aberto, entregadorId, onClose, onPagamentoV
   const [valorRetirada, setValorRetirada] = useState('');
   const [solicitandoRetirada, setSolicitandoRetirada] = useState(false);
   const [temRetiradaPendente, setTemRetiradaPendente] = useState(false);
+  const [temRetiradaAprovadaNaoPaga, setTemRetiradaAprovadaNaoPaga] = useState(false);
+  const [retiradasAprovadasNaoPagas, setRetiradasAprovadasNaoPagas] = useState<SolicitacaoRetirada[]>([]);
+  const [todasSolicitacoes, setTodasSolicitacoes] = useState<SolicitacaoRetirada[]>([]);
+  const [estabelecimentoVinculado, setEstabelecimentoVinculado] = useState<string | null>(null);
 
   useEffect(() => {
     if (aberto && entregadorId) {
       carregarSaldo();
       carregarPagamentos();
       carregarSolicitacoes();
+      carregarEstabelecimentoVinculado();
     }
-  }, [aberto, entregadorId]);
+  }, [aberto, entregadorId, abaAtiva]);
+
+  const carregarEstabelecimentoVinculado = async () => {
+    try {
+      // Buscar o estabelecimento mais recente que fez pagamento para este entregador
+      const { data, error } = await supabase
+        .from('pagamentos_entregadores')
+        .select('estabelecimento_id')
+        .eq('entregador_id', entregadorId)
+        .order('criado_em', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      if (error) throw error;
+      setEstabelecimentoVinculado(data?.estabelecimento_id || null);
+    } catch (error) {
+      console.error('Erro ao carregar estabelecimento vinculado:', error);
+    }
+  };
 
   const carregarSaldo = async () => {
     setLoading(true);
@@ -114,20 +137,56 @@ export default function ModalSaldo({ aberto, entregadorId, onClose, onPagamentoV
 
   const carregarSolicitacoes = async () => {
     try {
-      const { data, error } = await supabase
+      // Buscar todas as solicitações do entregador
+      const { data: todasSolicitacoes, error: errorSolicitacoes } = await supabase
         .from('solicitacoes_retirada')
         .select('*')
         .eq('entregador_id', entregadorId)
-        .eq('status', 'pendente')
         .order('criado_em', { ascending: false })
         .limit(50);
 
-      if (error) throw error;
-      setSolicitacoes(data || []);
+      if (errorSolicitacoes) throw errorSolicitacoes;
       
+      // Filtrar apenas pendentes para exibição no formulário
+      const pendentes = (todasSolicitacoes || []).filter(s => s.status === 'pendente');
+      setSolicitacoes(pendentes);
+
       // Verificar se tem retirada pendente
-      const temPendente = data && data.length > 0;
+      const temPendente = pendentes.length > 0;
       setTemRetiradaPendente(temPendente);
+      
+      // Verificar retiradas aprovadas que ainda não foram pagas
+      const aprovadas = (todasSolicitacoes || []).filter(s => s.status === 'aprovada');
+      
+      // Buscar pagamentos para verificar quais retiradas já foram pagas
+      const { data: pagamentos, error: errorPagamentos } = await supabase
+        .from('pagamentos_entregadores')
+        .select('valor, criado_em')
+        .eq('entregador_id', entregadorId)
+        .eq('status', 'realizado')
+        .order('criado_em', { ascending: false });
+      
+      if (errorPagamentos) console.error('Erro ao buscar pagamentos:', errorPagamentos);
+      
+      // Verificar se há retiradas aprovadas sem pagamento correspondente
+      const retiradasNaoPagas: SolicitacaoRetirada[] = [];
+      for (const retirada of aprovadas) {
+        // Verifica se existe um pagamento com valor igual ou superior após a data da aprovação
+        const pagamentoCorrespondente = pagamentos?.find(p => 
+          new Date(p.criado_em) >= new Date(retirada.criado_em) &&
+          p.valor >= retirada.valor
+        );
+        
+        if (!pagamentoCorrespondente) {
+          retiradasNaoPagas.push(retirada);
+        }
+      }
+      
+      setRetiradasAprovadasNaoPagas(retiradasNaoPagas);
+      setTemRetiradaAprovadaNaoPaga(retiradasNaoPagas.length > 0);
+      
+      // Armazenar todas as solicitações para o histórico completo
+      setTodasSolicitacoes(todasSolicitacoes || []);
     } catch (error) {
       console.error('Erro ao carregar solicitações:', error);
     }
@@ -135,7 +194,7 @@ export default function ModalSaldo({ aberto, entregadorId, onClose, onPagamentoV
 
   const handleSolicitarRetirada = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const valorNumerico = parseFloat(valorRetirada.replace(',', '.'));
     if (!valorRetirada || isNaN(valorNumerico) || valorNumerico <= 0) {
       alert('Informe um valor válido');
@@ -152,11 +211,17 @@ export default function ModalSaldo({ aberto, entregadorId, onClose, onPagamentoV
       return;
     }
 
+    if (!estabelecimentoVinculado) {
+      alert('⚠️ Nenhum estabelecimento vinculado. Você precisa receber um pagamento primeiro.');
+      return;
+    }
+
     setSolicitandoRetirada(true);
 
     try {
       const { error } = await supabase.from('solicitacoes_retirada').insert([{
         entregador_id: entregadorId,
+        estabelecimento_id: estabelecimentoVinculado,
         valor: valorNumerico,
         status: 'pendente',
       }]);
@@ -419,6 +484,31 @@ export default function ModalSaldo({ aberto, entregadorId, onClose, onPagamentoV
                 </div>
               </div>
 
+              {/* Aviso de Retirada Aprovada Pendente de Pagamento */}
+              {temRetiradaAprovadaNaoPaga && (
+                <div className="bg-orange-50 border-2 border-orange-300 rounded-xl p-4 mb-6">
+                  <div className="flex items-start gap-3">
+                    <span className="text-2xl">💳</span>
+                    <div>
+                      <p className="font-bold text-orange-800">Pagamento Pendente</p>
+                      <p className="text-sm text-orange-700 mt-1">
+                        Você possui {retiradasAprovadasNaoPagas.length} retirada(s) aprovada(s) aguardando pagamento:
+                      </p>
+                      <div className="mt-2 space-y-1">
+                        {retiradasAprovadasNaoPagas.map(r => (
+                          <p key={r.id} className="text-xs text-orange-600 font-medium">
+                            • {formatarMoeda(r.valor)} - Aprovada em {formatarData(r.criado_em)}
+                          </p>
+                        ))}
+                      </div>
+                      <p className="text-xs text-orange-600 mt-3">
+                        💡 Aguarde o estabelecimento realizar o pagamento antes de solicitar uma nova retirada.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Aviso de Retirada Pendente */}
               {temRetiradaPendente && (
                 <div className="bg-yellow-50 border-2 border-yellow-300 rounded-xl p-4 mb-6">
@@ -452,7 +542,7 @@ export default function ModalSaldo({ aberto, entregadorId, onClose, onPagamentoV
                       placeholder="0,00"
                       step="0.01"
                       min="10"
-                      disabled={temRetiradaPendente}
+                      disabled={temRetiradaPendente || temRetiradaAprovadaNaoPaga}
                       className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none font-bold disabled:bg-gray-100 disabled:cursor-not-allowed"
                       required
                     />
@@ -464,14 +554,20 @@ export default function ModalSaldo({ aberto, entregadorId, onClose, onPagamentoV
 
                 <button
                   type="submit"
-                  disabled={solicitandoRetirada || !valorRetirada || temRetiradaPendente}
+                  disabled={solicitandoRetirada || !valorRetirada || temRetiradaPendente || temRetiradaAprovadaNaoPaga}
                   className={`w-full py-4 rounded-lg font-bold text-white text-lg transition-all ${
-                    solicitandoRetirada || !valorRetirada || temRetiradaPendente
+                    solicitandoRetirada || !valorRetirada || temRetiradaPendente || temRetiradaAprovadaNaoPaga
                       ? 'bg-gray-400 cursor-not-allowed'
                       : 'bg-green-600 hover:bg-green-700 shadow-lg hover:shadow-xl'
                   }`}
                 >
-                  {temRetiradaPendente ? '⏳ Aguarde Aprovação' : solicitandoRetirada ? '⏳ Solicitando...' : '🏦 Solicitar Retirada'}
+                  {temRetiradaAprovadaNaoPaga 
+                    ? '💳 Aguarde Pagamento' 
+                    : temRetiradaPendente 
+                      ? '⏳ Aguarde Aprovação' 
+                      : solicitandoRetirada 
+                        ? '⏳ Solicitando...' 
+                        : '🏦 Solicitar Retirada'}
                 </button>
               </form>
 
@@ -481,14 +577,14 @@ export default function ModalSaldo({ aberto, entregadorId, onClose, onPagamentoV
                   📋 Histórico de Solicitações
                 </h4>
 
-                {solicitacoes.length === 0 ? (
+                {todasSolicitacoes.length === 0 ? (
                   <div className="text-center py-6 bg-gray-50 rounded-lg">
                     <span className="text-4xl">📭</span>
                     <p className="text-gray-500 mt-2 text-sm">Nenhuma solicitação enviada</p>
                   </div>
                 ) : (
                   <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {solicitacoes.map((solicitacao) => (
+                    {todasSolicitacoes.map((solicitacao) => (
                       <div
                         key={solicitacao.id}
                         className="p-4 bg-gray-50 rounded-lg border-2 border-gray-200"
