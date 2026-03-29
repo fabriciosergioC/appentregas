@@ -783,7 +783,8 @@ export default function Estabelecimento() {
         valorPedido ? parseFloat(valorPedido) : 0,
         valorEntregador ? parseFloat(valorEntregador) : 0,
         enderecoEstabelecimento,
-        formaPagamento
+        formaPagamento,
+        estabelecimentoId || undefined
       );
 
       if (resultado.error) {

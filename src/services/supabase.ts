@@ -387,7 +387,7 @@ export const pedidosApi = {
   },
 
   // Criar pedido (Estabelecimento)
-  async criarPedido(cliente: string, endereco: string, itens: string[], estabelecimentoNome?: string, valorPedido?: number, valorEntregador?: number, estabelecimentoEndereco?: string, formaPagamento?: string) {
+  async criarPedido(cliente: string, endereco: string, itens: string[], estabelecimentoNome?: string, valorPedido?: number, valorEntregador?: number, estabelecimentoEndereco?: string, formaPagamento?: string, estabelecimentoId?: string) {
     const { data, error } = await supabase
       .from('pedidos')
       .insert([
@@ -398,6 +398,7 @@ export const pedidosApi = {
           status: 'pendente',
           estabelecimento_nome: estabelecimentoNome || null,
           estabelecimento_endereco: estabelecimentoEndereco || null,
+          estabelecimento_id: estabelecimentoId || null,
           valor_pedido: valorPedido || null,
           valor_entregador: valorEntregador || null,
           forma_pagamento: formaPagamento || null,
