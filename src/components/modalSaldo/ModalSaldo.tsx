@@ -70,17 +70,43 @@ export default function ModalSaldo({ aberto, entregadorId, onClose, onPagamentoV
 
   const carregarEstabelecimentoVinculado = async () => {
     try {
-      // Buscar o estabelecimento mais recente que fez pagamento para este entregador
-      const { data, error } = await supabase
+      // Primeiro, tentar buscar através de pagamentos_entregadores
+      const { data: pagamentoData, error: erroPagamento } = await supabase
         .from('pagamentos_entregadores')
         .select('estabelecimento_id')
         .eq('entregador_id', entregadorId)
         .order('criado_em', { ascending: false })
         .limit(1)
         .maybeSingle();
-      
-      if (error) throw error;
-      setEstabelecimentoVinculado(data?.estabelecimento_id || null);
+
+      if (erroPagamento) console.error('Erro ao buscar estabelecimento em pagamentos:', erroPagamento);
+
+      if (pagamentoData?.estabelecimento_id) {
+        setEstabelecimentoVinculado(pagamentoData.estabelecimento_id);
+        console.log('✅ Estabelecimento vinculado encontrado em pagamentos:', pagamentoData.estabelecimento_id);
+        return;
+      }
+
+      // Se não encontrou em pagamentos, buscar através dos pedidos finalizados
+      const { data: pedidosData, error: erroPedidos } = await supabase
+        .from('pedidos')
+        .select('estabelecimento_id, estabelecimento_nome')
+        .eq('entregador_id', entregadorId)
+        .in('status', ['entregue', 'no_local'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (erroPedidos) console.error('Erro ao buscar estabelecimento em pedidos:', erroPedidos);
+
+      if (pedidosData?.estabelecimento_id) {
+        setEstabelecimentoVinculado(pedidosData.estabelecimento_id);
+        console.log('✅ Estabelecimento vinculado encontrado em pedidos:', pedidosData.estabelecimento_id);
+        return;
+      }
+
+      console.log('⚠️ Nenhum estabelecimento vinculado encontrado para este entregador');
+      setEstabelecimentoVinculado(null);
     } catch (error) {
       console.error('Erro ao carregar estabelecimento vinculado:', error);
     }
