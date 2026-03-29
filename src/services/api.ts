@@ -39,6 +39,22 @@ export const api = {
   },
 
   // =============================================
+  // RECUPERACAO DE SENHA
+  // =============================================
+
+  async solicitarRecuperacaoSenha(telefone: string) {
+    return await entregadoresApi.solicitarRecuperacaoSenha(telefone);
+  },
+
+  async validarTokenRecuperacao(telefone: string, token: string) {
+    return await entregadoresApi.validarTokenRecuperacao(telefone, token);
+  },
+
+  async redefinirSenha(telefone: string, token: string, novaSenha: string) {
+    return await entregadoresApi.redefinirSenha(telefone, token, novaSenha);
+  },
+
+  // =============================================
   // PEDIDOS
   // =============================================
 

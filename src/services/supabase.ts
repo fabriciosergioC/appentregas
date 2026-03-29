@@ -111,6 +111,82 @@ export const entregadoresApi = {
     return { data: novo, error: erroCriacao };
   },
 
+  // Solicitar recuperação de senha
+  async solicitarRecuperacaoSenha(telefone: string) {
+    // Buscar entregador pelo telefone
+    const { data: entregador, error: buscaError } = await supabase
+      .from('entregadores')
+      .select('id, telefone')
+      .eq('telefone', telefone)
+      .single();
+
+    if (buscaError || !entregador) {
+      // Não revela se o telefone existe ou não por segurança
+      return { data: { solicitado: true }, error: null };
+    }
+
+    // Gerar token aleatório
+    const token = Math.random().toString(36).substring(2, 15) + 
+                  Math.random().toString(36).substring(2, 15);
+    
+    // Token expira em 1 hora
+    const expiracao = new Date();
+    expiracao.setHours(expiracao.getHours() + 1);
+
+    const { data, error } = await supabase
+      .from('entregadores')
+      .update({
+        token_recuperacao: token,
+        token_expiracao: expiracao.toISOString(),
+      })
+      .eq('id', entregador.id)
+      .select()
+      .single();
+
+    return { data: { solicitado: true, token }, error };
+  },
+
+  // Validar token de recuperação
+  async validarTokenRecuperacao(telefone: string, token: string) {
+    const { data, error } = await supabase
+      .from('entregadores')
+      .select('id, token_recuperacao, token_expiracao')
+      .eq('telefone', telefone)
+      .eq('token_recuperacao', token)
+      .gte('token_expiracao', new Date().toISOString())
+      .single();
+
+    if (error || !data) {
+      return { data: null, error: new Error('Token inválido ou expirado') };
+    }
+
+    return { data: { id: data.id }, error: null };
+  },
+
+  // Redefinir senha
+  async redefinirSenha(telefone: string, token: string, novaSenha: string) {
+    // Validar token primeiro
+    const validacao = await this.validarTokenRecuperacao(telefone, token);
+    
+    if (validacao.error || !validacao.data) {
+      return { data: null, error: new Error('Token inválido ou expirado') };
+    }
+
+    // Atualizar senha
+    const { data, error } = await supabase
+      .from('entregadores')
+      .update({
+        senha_hash: btoa(novaSenha),
+        token_recuperacao: null,
+        token_expiracao: null,
+      })
+      .eq('id', validacao.data.id)
+      .select()
+      .single();
+
+    return { data, error };
+  },
+
   // Atualizar localização
   async atualizarLocalizacao(id: string, lat: number, lng: number) {
     const { data, error } = await supabase
