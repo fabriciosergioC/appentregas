@@ -36,7 +36,7 @@ interface SolicitacaoRetirada {
   id: string;
   entregador_id: string;
   valor: number;
-  status: 'pendente' | 'aprovada' | 'cancelada';
+  status: 'pendente' | 'aprovada' | 'concluida' | 'cancelada';
   criado_em: string;
 }
 
@@ -264,6 +264,21 @@ export default function ModalSaldo({ aberto, entregadorId, onClose, onPagamentoV
       alert('Erro ao solicitar retirada. Tente novamente.');
     } finally {
       setSolicitandoRetirada(false);
+    }
+  };
+
+  const handleConfirmarRecebimento = async (solicitacaoId: string) => {
+    try {
+      const { error } = await supabase
+        .from('solicitacoes_retirada')
+        .update({ status: 'concluida' })
+        .eq('id', solicitacaoId);
+      
+      if (error) throw error;
+      carregarSolicitacoes();
+    } catch (error) {
+      console.error('Erro ao confirmar recebimento:', error);
+      alert('Erro ao confirmar recebimento.');
     }
   };
 
@@ -659,28 +674,42 @@ export default function ModalSaldo({ aberto, entregadorId, onClose, onPagamentoV
                         key={solicitacao.id}
                         className="p-4 bg-gray-50 rounded-lg border-2 border-gray-200"
                       >
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <p className="font-bold text-gray-800 text-lg">
-                              {formatarMoeda(solicitacao.valor)}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {formatarData(solicitacao.criado_em)}
-                            </p>
+                        <div className="flex flex-col gap-2">
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <p className="font-bold text-gray-800 text-lg">
+                                {formatarMoeda(solicitacao.valor)}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {formatarData(solicitacao.criado_em)}
+                              </p>
+                            </div>
+                            <span
+                              className={`px-3 py-1.5 rounded-full text-xs font-bold ${
+                                solicitacao.status === 'pendente'
+                                  ? 'bg-yellow-100 text-yellow-700'
+                                  : solicitacao.status === 'aprovada'
+                                  ? 'bg-green-100 text-green-700 font-black ring-2 ring-green-500 animate-pulse'
+                                  : solicitacao.status === 'concluida'
+                                  ? 'bg-emerald-100 text-emerald-700 font-bold'
+                                  : 'bg-red-100 text-red-700'
+                              }`}
+                            >
+                              {solicitacao.status === 'pendente' && '⏳ Pendente'}
+                              {solicitacao.status === 'aprovada' && '✅ Aprovada / Paga!'}
+                              {solicitacao.status === 'concluida' && '🏁 Concluída'}
+                              {solicitacao.status === 'cancelada' && '❌ Cancelada'}
+                            </span>
                           </div>
-                          <span
-                            className={`px-3 py-1.5 rounded-full text-xs font-bold ${
-                              solicitacao.status === 'pendente'
-                                ? 'bg-yellow-100 text-yellow-700'
-                                : solicitacao.status === 'aprovada'
-                                ? 'bg-green-100 text-green-700'
-                                : 'bg-red-100 text-red-700'
-                            }`}
-                          >
-                            {solicitacao.status === 'pendente' && '⏳ Pendente'}
-                            {solicitacao.status === 'aprovada' && '✅ Aprovada'}
-                            {solicitacao.status === 'cancelada' && '❌ Cancelada'}
-                          </span>
+
+                          {solicitacao.status === 'aprovada' && (
+                            <button
+                              onClick={() => handleConfirmarRecebimento(solicitacao.id)}
+                              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-lg text-sm shadow-md transition-all active:scale-95 flex items-center justify-center gap-2"
+                            >
+                              🤝 Confirmar que recebi o valor
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}

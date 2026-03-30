@@ -197,6 +197,18 @@ export default function ModalPagamentoEntregador({
 
       if (error) throw error;
 
+      // Se for um pagamento de uma retirada específica, atualiza o status dela
+      if (dadosRetirada?.solicitacao_id) {
+        const { error: updateError } = await supabase
+          .from('solicitacoes_retirada')
+          .update({ status: 'aprovada' })
+          .eq('id', dadosRetirada.solicitacao_id);
+        
+        if (updateError) {
+          console.error('Erro ao atualizar status da retirada:', updateError);
+        }
+      }
+
       setSucesso('Pagamento registrado com sucesso! Saldo abatido.');
       onPagamentoRealizado();
 

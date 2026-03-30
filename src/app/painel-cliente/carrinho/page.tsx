@@ -134,6 +134,11 @@ export default function CarrinhoPage() {
       // Calcular total
       const valorTotal = totalCarrinho;
 
+      // Arredondar valor para 2 casas decimais (formato DECIMAL do banco)
+      const valorPedidoFormatado = Math.round(totalCarrinho * 100) / 100;
+
+      console.log('💰 Valor do pedido (formatado):', valorPedidoFormatado);
+
       // Salvar na fila de pedidos (tabela separada)
       const { data: pedidoFila, error: erroFila } = await supabase
         .from('fila_pedidos')
@@ -148,7 +153,7 @@ export default function CarrinhoPage() {
           estabelecimento_nome: estabelecimento?.nome_estabelecimento || estabelecimentoNome,
           estabelecimento_id: estabelecimentoId,
           criado_por: 'cliente',
-          valor_pedido: totalCarrinho,
+          valor_pedido: valorPedidoFormatado,
           valor_entregador: 0, // Taxa do entregador (será calculada posteriormente)
         }])
         .select()
@@ -156,6 +161,7 @@ export default function CarrinhoPage() {
 
       if (erroFila) {
         console.error('❌ Erro ao salvar na fila de pedidos:', erroFila);
+        console.error('🔍 Detalhes do erro:', JSON.stringify(erroFila, null, 2));
         alert('Erro ao salvar pedido: ' + erroFila.message);
         return;
       }
@@ -223,6 +229,9 @@ export default function CarrinhoPage() {
 
       const comprovanteUrl = urlData?.publicUrl || null;
 
+      // Arredondar valor para 2 casas decimais (formato DECIMAL do banco)
+      const valorPedidoFormatado = Math.round(totalCarrinho * 100) / 100;
+
       // Salvar na fila de pedidos com o comprovante
       const pedidoData = {
         cliente: nomeCliente,
@@ -235,7 +244,7 @@ export default function CarrinhoPage() {
         estabelecimento_nome: estabelecimento?.nome_estabelecimento || estabelecimentoNome,
         estabelecimento_id: estabelecimentoId,
         criado_por: 'cliente',
-        valor_pedido: totalCarrinho,
+        valor_pedido: valorPedidoFormatado,
         valor_entregador: 0, // Taxa do entregador (será calculada posteriormente)
         comprovante_pix: comprovanteUrl || null,
       };
