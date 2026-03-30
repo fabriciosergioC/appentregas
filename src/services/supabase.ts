@@ -460,17 +460,22 @@ export const pedidosApi = {
 
   // Finalizar pedido
   async finalizarPedido(pedidoId: string) {
-    const { data, error } = await supabase
+    const { data: pedido, error } = await supabase
       .from('pedidos')
       .update({
         status: 'entregue',
         updated_at: new Date().toISOString(),
       })
       .eq('id', pedidoId)
-      .select()
+      .select('*')
       .single();
 
-    return { data, error };
+    if (error) {
+      console.error('Erro ao finalizar pedido:', error);
+      return { data: pedido, error };
+    }
+
+    return { data: pedido, error };
   },
 
   // Criar pedido (Estabelecimento)

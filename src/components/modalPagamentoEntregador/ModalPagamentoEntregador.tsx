@@ -18,12 +18,19 @@ interface ModalPagamentoEntregadorProps {
   aberto: boolean;
   onClose: () => void;
   onPagamentoRealizado: () => void;
+  dadosRetirada?: {
+    solicitacao_id: string;
+    entregador_id: string;
+    valor: number;
+    descricao?: string;
+  } | null;
 }
 
 export default function ModalPagamentoEntregador({
   aberto,
   onClose,
   onPagamentoRealizado,
+  dadosRetirada = null,
 }: ModalPagamentoEntregadorProps) {
   const [entregadores, setEntregadores] = useState<Entregador[]>([]);
   const [entregadorSelecionado, setEntregadorSelecionado] = useState<string>('');
@@ -42,8 +49,14 @@ export default function ModalPagamentoEntregador({
   useEffect(() => {
     if (aberto) {
       carregarEntregadores();
+      
+      if (dadosRetirada) {
+        setEntregadorSelecionado(dadosRetirada.entregador_id);
+        setValor(dadosRetirada.valor.toString());
+        setDescricao(dadosRetirada.descricao || '');
+      }
     }
-  }, [aberto]);
+  }, [aberto, dadosRetirada]);
 
   // Carregar chaves PIX quando entregador for selecionado e forma for PIX
   useEffect(() => {
@@ -164,7 +177,7 @@ export default function ModalPagamentoEntregador({
       }
 
       // Registrar pagamento
-      const pagamentoData = {
+      const pagamentoData: any = {
         entregador_id: entregadorSelecionado,
         estabelecimento_id: estabelecimentoId,
         valor: valorNumerico,
@@ -172,6 +185,7 @@ export default function ModalPagamentoEntregador({
         descricao: descricao || null,
         status: 'realizado',
         criado_por: estabelecimentoId,
+        solicitacao_id: dadosRetirada?.solicitacao_id || null,
       };
 
       // Adicionar comprovante se existir

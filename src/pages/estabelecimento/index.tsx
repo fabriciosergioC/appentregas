@@ -93,6 +93,7 @@ export default function Estabelecimento() {
   const [mostrarRetiradas, setMostrarRetiradas] = useState(false);
   const [solicitacoesRetirada, setSolicitacoesRetirada] = useState<any[]>([]);
   const [carregandoRetiradas, setCarregandoRetiradas] = useState(false);
+  const [retiradaParaPagar, setRetiradaParaPagar] = useState<any>(null);
 
   // Estados para produtos
   const [produtos, setProdutos] = useState<any[]>([]);
@@ -322,20 +323,15 @@ export default function Estabelecimento() {
     }
   };
 
-  // Aprovar retirada
-  const handleAprovarRetirada = async (solicitacao: any) => {
-    if (!confirm(`Aprovar retirada de ${solicitacao.entregador?.nome || 'Entregador'} no valor de R$ ${solicitacao.valor}?`)) return;
-    try {
-      const { error } = await supabase
-        .from('solicitacoes_retirada')
-        .update({ status: 'aprovada' })
-        .eq('id', solicitacao.id);
-      if (error) throw error;
-      alert('✅ Retirada aprovada com sucesso!');
-      carregarRetiradas();
-    } catch (err) {
-      alert('Erro ao aprovar retirada');
-    }
+  // Aprovar retirada (Abre modal de pagamento)
+  const handleAprovarRetirada = (solicitacao: any) => {
+    setRetiradaParaPagar({
+      solicitacao_id: solicitacao.id,
+      entregador_id: solicitacao.entregador_id,
+      valor: solicitacao.valor,
+      descricao: `Retirada de Saldo - ${solicitacao.entregador?.nome || 'Entregador'}`
+    });
+    setModalPagamentoAberto(true);
   };
 
   // Cancelar retirada
@@ -894,20 +890,26 @@ export default function Estabelecimento() {
 
   const carregarPagamentos = async () => {
     if (!estabelecimentoId) return;
-    
+
     setCarregandoPagamentos(true);
     try {
       const { data, error } = await supabase
         .from('pagamentos_entregadores')
         .select(`
           *,
-          entregador:entregadores(nome, telefone)
+          entregador:entregadores(nome, telefone),
+          retirada:solicitacoes_retirada(
+            pedido:pedidos(itens)
+          )
         `)
         .eq('estabelecimento_id', estabelecimentoId)
         .order('criado_em', { ascending: false })
         .limit(50);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro detalhado do Supabase:', error);
+        throw error;
+      }
       setPagamentos(data || []);
     } catch (error) {
       console.error('Erro ao carregar pagamentos:', error);
@@ -1518,6 +1520,20 @@ export default function Estabelecimento() {
                               )}
                             </div>
                           </div>
+                          {solicitacao.pedido?.itens && (
+                            <div className="mt-3 bg-gray-50 rounded-lg p-2 border border-gray-100">
+                              <p className="text-[10px] font-bold text-gray-500 uppercase mb-1">📦 ITENS DO PEDIDO:</p>
+                              <ul className="text-xs text-gray-700 space-y-0.5">
+                                {Array.isArray(solicitacao.pedido.itens) ? (
+                                  solicitacao.pedido.itens.map((item: any, i: number) => (
+                                    <li key={i}>• {item}</li>
+                                  ))
+                                ) : (
+                                  <li>• {solicitacao.pedido.itens}</li>
+                                )}
+                              </ul>
+                            </div>
+                          )}
                         </div>
                         <div className="text-right">
                           <p className="text-2xl font-bold text-green-600">
@@ -2508,47 +2524,74 @@ export default function Estabelecimento() {
                       <th className="text-left text-xs font-bold text-red-700 uppercase py-3 px-4">Entregador</th>
                       <th className="text-left text-xs font-bold text-red-700 uppercase py-3 px-4">Forma</th>
                       <th className="text-left text-xs font-bold text-red-700 uppercase py-3 px-4">Descrição</th>
+                      <th className="text-left text-xs font-bold text-red-700 uppercase py-3 px-4">📦 Itens do Pedido</th>
                       <th className="text-right text-xs font-bold text-red-700 uppercase py-3 px-4">Valor</th>
                       <th className="text-center text-xs font-bold text-red-700 uppercase py-3 px-4">Status</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {pagamentos.map((pagamento) => (
-                      <tr key={pagamento.id} className="border-t border-gray-100 hover:bg-red-50 transition-colors">
-                        <td className="py-3 px-4 text-sm text-gray-700">
-                          {new Date(pagamento.criado_em).toLocaleDateString('pt-BR')}
-                        </td>
-                        <td className="py-3 px-4 text-sm">
-                          <div>
-                            <p className="font-medium text-gray-800">{pagamento.entregador?.nome}</p>
-                            <p className="text-xs text-gray-500">{pagamento.entregador?.telefone}</p>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 text-sm">
-                          {pagamento.forma_pagamento === 'pix' && '💠 PIX'}
-                          {pagamento.forma_pagamento === 'dinheiro' && '💵 Dinheiro'}
-                          {pagamento.forma_pagamento === 'transferencia' && '🏦 Transferência'}
-                        </td>
-                        <td className="py-3 px-4 text-sm text-gray-600 max-w-xs truncate">
-                          {pagamento.descricao || '-'}
-                        </td>
-                        <td className="py-3 px-4 text-sm font-bold text-red-600 text-right">
-                          {parseFloat(pagamento.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          {pagamento.status === 'realizado' && (
-                            <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium">
-                              ✅ Realizado
-                            </span>
-                          )}
-                          {pagamento.status === 'cancelado' && (
-                            <span className="bg-red-100 text-red-700 px-2 py-1 rounded-full text-xs font-medium">
-                              ❌ Cancelado
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
+                    {pagamentos.map((pagamento) => {
+                      // Obter itens do pedido (prioriza itens_em_pedido, depois busca via retirada)
+                      const itensPedido = pagamento.itens_em_pedido || pagamento.retirada?.pedido?.itens;
+                      
+                      return (
+                        <tr key={pagamento.id} className="border-t border-gray-100 hover:bg-red-50 transition-colors">
+                          <td className="py-3 px-4 text-sm text-gray-700">
+                            {new Date(pagamento.criado_em).toLocaleDateString('pt-BR')}
+                          </td>
+                          <td className="py-3 px-4 text-sm">
+                            <div>
+                              <p className="font-medium text-gray-800">{pagamento.entregador?.nome}</p>
+                              <p className="text-xs text-gray-500">{pagamento.entregador?.telefone}</p>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-sm">
+                            {pagamento.forma_pagamento === 'pix' && '💠 PIX'}
+                            {pagamento.forma_pagamento === 'dinheiro' && '💵 Dinheiro'}
+                            {pagamento.forma_pagamento === 'transferencia' && '🏦 Transferência'}
+                          </td>
+                          <td className="py-3 px-4 text-sm text-gray-600">
+                            <div>
+                              <p className="max-w-xs truncate">{pagamento.descricao || '-'}</p>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-sm">
+                            {itensPedido ? (
+                              <div className="flex flex-wrap gap-1 max-w-md">
+                                {Array.isArray(itensPedido) ? (
+                                  itensPedido.map((item: string, i: number) => (
+                                    <span key={i} className="text-[10px] bg-red-100 text-red-700 px-2 py-1 rounded border border-red-200 font-medium">
+                                      {item}
+                                    </span>
+                                  ))
+                                ) : (
+                                  <span className="text-[10px] bg-red-100 text-red-700 px-2 py-1 rounded border border-red-200 font-medium">
+                                    {itensPedido}
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-gray-400 italic">Sem itens vinculados</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 text-sm font-bold text-red-600 text-right">
+                            {parseFloat(pagamento.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            {pagamento.status === 'realizado' && (
+                              <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium">
+                                ✅ Realizado
+                              </span>
+                            )}
+                            {pagamento.status === 'cancelado' && (
+                              <span className="bg-red-100 text-red-700 px-2 py-1 rounded-full text-xs font-medium">
+                                ❌ Cancelado
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -2562,7 +2605,10 @@ export default function Estabelecimento() {
           onClose={() => setModalPagamentoAberto(false)}
           onPagamentoRealizado={() => {
             carregarPagamentos();
+            carregarRetiradas();
+            setRetiradaParaPagar(null);
           }}
+          dadosRetirada={retiradaParaPagar}
         />
 
         {/* Modal de Comprovante PIX */}

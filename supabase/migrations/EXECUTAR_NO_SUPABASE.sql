@@ -56,3 +56,11 @@ ON estabelecimentos(token_recuperacao);
 
 COMMENT ON COLUMN public.estabelecimentos.token_recuperacao IS 'Token para recuperação de senha';
 COMMENT ON COLUMN public.estabelecimentos.token_expiracao IS 'Data/hora de expiração do token de recuperação';
+
+-- Adicionar pedido_id em solicitacoes_retirada
+ALTER TABLE public.solicitacoes_retirada ADD COLUMN IF NOT EXISTS pedido_id UUID REFERENCES pedidos(id);
+
+
+-- Adicionar solicitacao_id em pagamentos_entregadores
+ALTER TABLE public.pagamentos_entregadores ADD COLUMN IF NOT EXISTS solicitacao_id UUID REFERENCES solicitacoes_retirada(id);
+

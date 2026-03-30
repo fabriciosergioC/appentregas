@@ -16,6 +16,7 @@ interface Extrato {
   created_at: string;
   pedidos?: {
     estabelecimento_nome: string | null;
+    estabelecimento_id: string | null;
   };
 }
 
@@ -62,6 +63,8 @@ export default function ModalSaldo({ aberto, entregadorId, onClose, onPagamentoV
   const [todasSolicitacoes, setTodasSolicitacoes] = useState<SolicitacaoRetirada[]>([]);
   const [estabelecimentos, setEstabelecimentos] = useState<{id: string, nome: string}[]>([]);
   const [estabelecimentoSelecionado, setEstabelecimentoSelecionado] = useState<string>('');
+  const [travarEstabelecimento, setTravarEstabelecimento] = useState(false);
+  const [pedidoIdRetirada, setPedidoIdRetirada] = useState<string | null>(null);
 
   useEffect(() => {
     if (aberto && entregadorId) {
@@ -127,7 +130,8 @@ export default function ModalSaldo({ aberto, entregadorId, onClose, onPagamentoV
         .select(`
           *,
           pedidos (
-            estabelecimento_nome
+            estabelecimento_nome,
+            estabelecimento_id
           )
         `)
         .eq('entregador_id', entregadorId)
@@ -247,6 +251,7 @@ export default function ModalSaldo({ aberto, entregadorId, onClose, onPagamentoV
         estabelecimento_id: estabelecimentoSelecionado,
         valor: valorNumerico,
         status: 'pendente',
+        pedido_id: pedidoIdRetirada
       }]);
 
       if (error) throw error;
@@ -366,7 +371,11 @@ export default function ModalSaldo({ aberto, entregadorId, onClose, onPagamentoV
             </button>
             <button
               type="button"
-              onClick={() => setAbaAtiva('retiradas')}
+              onClick={() => { 
+                setAbaAtiva('retiradas'); 
+                setTravarEstabelecimento(false);
+                setPedidoIdRetirada(null);
+              }}
               className={`flex-1 py-3 px-4 rounded-xl font-bold transition-all text-sm ${
                 abaAtiva === 'retiradas'
                   ? 'bg-green-600 text-white shadow-lg scale-105'
@@ -414,10 +423,27 @@ export default function ModalSaldo({ aberto, entregadorId, onClose, onPagamentoV
                           <p className="text-xs text-gray-500">{formatarData(extrato.created_at)}</p>
                         </div>
                       </div>
-                      <span className={`font-bold ${getTipoClasse(extrato.tipo)}`}>
-                        {extrato.tipo === 'credito' ? '+' : '-'}
-                        {formatarMoeda(Math.abs(extrato.valor))}
-                      </span>
+                      <div className="flex flex-col items-end gap-2">
+                        <span className={`font-bold ${getTipoClasse(extrato.tipo)}`}>
+                          {extrato.tipo === 'credito' ? '+' : '-'}
+                          {formatarMoeda(Math.abs(extrato.valor))}
+                        </span>
+                        {extrato.tipo === 'credito' && extrato.descricao.includes('Entrega finalizada') && extrato.pedidos?.estabelecimento_id && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAbaAtiva('retiradas');
+                              setEstabelecimentoSelecionado(extrato.pedidos!.estabelecimento_id!);
+                              setValorRetirada(Math.abs(extrato.valor).toString());
+                              setPedidoIdRetirada(extrato.pedido_id);
+                              setTravarEstabelecimento(true);
+                            }}
+                            className="bg-green-600 hover:bg-green-700 text-white text-xs font-bold px-3 py-1.5 rounded shadow-sm transition-all"
+                          >
+                            💸 Sacar
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -513,7 +539,7 @@ export default function ModalSaldo({ aberto, entregadorId, onClose, onPagamentoV
 
               {/* Aviso de Retirada Aprovada Pendente de Pagamento */}
               {temRetiradaAprovadaNaoPaga && (
-                <div className="bg-orange-50 border-2 border-orange-300 rounded-xl p-4 mb-6">
+                <div className="bg-orange-50 border-2 border-orange-300 rounded-xl p-4 mb-6 text-[env(safe-area-inset-bottom)] pb-4">
                   <div className="flex items-start gap-3">
                     <span className="text-2xl">💳</span>
                     <div>
@@ -528,8 +554,8 @@ export default function ModalSaldo({ aberto, entregadorId, onClose, onPagamentoV
                           </p>
                         ))}
                       </div>
-                      <p className="text-xs text-orange-600 mt-3">
-                        💡 Aguarde o estabelecimento realizar o pagamento antes de solicitar uma nova retirada.
+                      <p className="text-xs text-orange-600 mt-3 font-bold">
+                        💡 Aguarde o pagamento ser realizado antes de solicitar uma nova retirada.
                       </p>
                     </div>
                   </div>
@@ -540,19 +566,21 @@ export default function ModalSaldo({ aberto, entregadorId, onClose, onPagamentoV
               {temRetiradaPendente && (
                 <div className="bg-yellow-50 border-2 border-yellow-300 rounded-xl p-4 mb-6">
                   <div className="flex items-start gap-3">
-                    <span className="text-2xl">⚠️</span>
+                    <span className="text-2xl">⏳</span>
                     <div>
                       <p className="font-bold text-yellow-800">Retirada Pendente</p>
                       <p className="text-sm text-yellow-700 mt-1">
-                        Você já possui uma solicitação de retirada pendente de aprovação.
+                        Você já possui uma solicitação de retirada aguardando aprovação do estabelecimento.
                       </p>
-                      <p className="text-xs text-yellow-600 mt-2">
-                        💡 Aguarde a aprovação do estabelecimento antes de solicitar uma nova retirada.
+                      <p className="text-xs text-yellow-600 mt-2 font-bold">
+                        💡 Você só poderá solicitar um novo saque após este ser aceito ou cancelado.
                       </p>
                     </div>
                   </div>
                 </div>
               )}
+
+
 
               {/* Formulário de Solicitação */}
               <form onSubmit={handleSolicitarRetirada} className="mb-6">
@@ -563,8 +591,8 @@ export default function ModalSaldo({ aberto, entregadorId, onClose, onPagamentoV
                   <select
                     value={estabelecimentoSelecionado}
                     onChange={(e) => setEstabelecimentoSelecionado(e.target.value)}
-                    disabled={temRetiradaPendente || temRetiradaAprovadaNaoPaga}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 outline-none font-bold bg-white mb-4 disabled:bg-gray-100"
+                    disabled={travarEstabelecimento}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 outline-none font-bold bg-white mb-4 disabled:bg-gray-100 disabled:text-gray-500"
                     required
                   >
                     <option value="" disabled>Selecione um estabelecimento...</option>
@@ -585,7 +613,6 @@ export default function ModalSaldo({ aberto, entregadorId, onClose, onPagamentoV
                       placeholder="0,00"
                       step="0.01"
                       min="0.01"
-                      disabled={temRetiradaPendente || temRetiradaAprovadaNaoPaga}
                       className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none font-bold disabled:bg-gray-100 disabled:cursor-not-allowed"
                       required
                     />
