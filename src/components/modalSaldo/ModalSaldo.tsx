@@ -14,6 +14,9 @@ interface Extrato {
   valor: number;
   descricao: string;
   created_at: string;
+  pedidos?: {
+    estabelecimento_nome: string | null;
+  };
 }
 
 interface Pagamento {
@@ -132,7 +135,12 @@ export default function ModalSaldo({ aberto, entregadorId, onClose, onPagamentoV
       // Buscar extratos (últimos 50)
       const { data: extratosData } = await supabase
         .from('extratos')
-        .select('*')
+        .select(`
+          *,
+          pedidos (
+            estabelecimento_nome
+          )
+        `)
         .eq('entregador_id', entregadorId)
         .order('created_at', { ascending: false })
         .limit(50);
@@ -409,7 +417,11 @@ export default function ModalSaldo({ aberto, entregadorId, onClose, onPagamentoV
                       <div className="flex items-center gap-3">
                         <span className="text-2xl">{getTipoIcon(extrato.tipo)}</span>
                         <div>
-                          <p className="font-medium text-gray-800">{extrato.descricao}</p>
+                          <p className="font-medium text-gray-800">
+                            {extrato.pedidos?.estabelecimento_nome 
+                              ? (extrato.descricao.includes('Entrega finalizada') ? `Entrega finalizada - ${extrato.pedidos.estabelecimento_nome}` : extrato.descricao)
+                              : extrato.descricao}
+                          </p>
                           <p className="text-xs text-gray-500">{formatarData(extrato.created_at)}</p>
                         </div>
                       </div>

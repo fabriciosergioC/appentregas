@@ -73,6 +73,7 @@ export default function Estabelecimento() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(false);
   const [filtroAtivo, setFiltroAtivo] = useState<FiltroPedidos>('todos');
+  const [filtroIdPedido, setFiltroIdPedido] = useState('');
   const [statusConexao, setStatusConexao] = useState<'online' | 'offline'>('online');
   const [linkCopiado, setLinkCopiado] = useState<string | null>(null);
   const [ultimoPedidoCriado, setUltimoPedidoCriado] = useState<string | null>(null);
@@ -739,6 +740,10 @@ export default function Estabelecimento() {
   };
 
   const pedidosFiltrados = pedidos.filter((pedido) => {
+    if (filtroIdPedido && !pedido.id.toLowerCase().includes(filtroIdPedido.toLowerCase())) {
+      return false;
+    }
+
     if (filtroAtivo === 'todos') return true;
     if (filtroAtivo === 'pendentes') return pedido.status === 'pendente' || pedido.status === 'aceito';
     if (filtroAtivo === 'em_entrega') return pedido.status === 'em_transito' || pedido.status === 'no_local';
@@ -747,10 +752,10 @@ export default function Estabelecimento() {
   });
 
   const contagemPedidos = {
-    todos: pedidos.length,
-    pendentes: pedidos.filter(p => p.status === 'pendente' || p.status === 'aceito').length,
-    em_entrega: pedidos.filter(p => p.status === 'em_transito' || p.status === 'no_local').length,
-    entregues: pedidos.filter(p => p.status === 'entregue').length,
+    todos: pedidos.filter(p => !filtroIdPedido || p.id.toLowerCase().includes(filtroIdPedido.toLowerCase())).length,
+    pendentes: pedidos.filter(p => (!filtroIdPedido || p.id.toLowerCase().includes(filtroIdPedido.toLowerCase())) && (p.status === 'pendente' || p.status === 'aceito')).length,
+    em_entrega: pedidos.filter(p => (!filtroIdPedido || p.id.toLowerCase().includes(filtroIdPedido.toLowerCase())) && (p.status === 'em_transito' || p.status === 'no_local')).length,
+    entregues: pedidos.filter(p => (!filtroIdPedido || p.id.toLowerCase().includes(filtroIdPedido.toLowerCase())) && p.status === 'entregue').length,
   };
 
   const handleCriarPedido = async (e: React.FormEvent) => {
@@ -1794,9 +1799,23 @@ export default function Estabelecimento() {
                   </div>
 
             {/* Filtros */}
-            <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
-              <button
-                onClick={() => setFiltroAtivo('todos')}
+            <div className="flex flex-col gap-4 mb-4">
+              {/* Pesquisa por ID */}
+              <div className="relative w-full">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+                <input
+                  type="text"
+                  placeholder="Buscar pelo Pedido # (ex: 78f2)"
+                  value={filtroIdPedido}
+                  onChange={(e) => setFiltroIdPedido(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-red-200 focus:border-red-500 focus:outline-none transition-all text-sm font-medium"
+                />
+              </div>
+
+              {/* Abas */}
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                <button
+                  onClick={() => setFiltroAtivo('todos')}
                 className={`px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-colors ${
                   filtroAtivo === 'todos'
                     ? 'bg-red-600 text-white shadow-lg shadow-red-300'
@@ -1836,6 +1855,7 @@ export default function Estabelecimento() {
                 Entregues ({contagemPedidos.entregues})
               </button>
             </div>
+          </div>
 
             {pedidosFiltrados.length === 0 ? (
               <div className="text-center py-10">
