@@ -60,7 +60,8 @@ export default function ModalSaldo({ aberto, entregadorId, onClose, onPagamentoV
   const [temRetiradaAprovadaNaoPaga, setTemRetiradaAprovadaNaoPaga] = useState(false);
   const [retiradasAprovadasNaoPagas, setRetiradasAprovadasNaoPagas] = useState<SolicitacaoRetirada[]>([]);
   const [todasSolicitacoes, setTodasSolicitacoes] = useState<SolicitacaoRetirada[]>([]);
-  const [estabelecimentoVinculado, setEstabelecimentoVinculado] = useState<string | null>(null);
+  const [estabelecimentos, setEstabelecimentos] = useState<{id: string, nome: string}[]>([]);
+  const [estabelecimentoSelecionado, setEstabelecimentoSelecionado] = useState<string>('');
 
   useEffect(() => {
     if (aberto && entregadorId) {
@@ -73,45 +74,33 @@ export default function ModalSaldo({ aberto, entregadorId, onClose, onPagamentoV
 
   const carregarEstabelecimentoVinculado = async () => {
     try {
-      // Primeiro, tentar buscar através de pagamentos_entregadores
-      const { data: pagamentoData, error: erroPagamento } = await supabase
-        .from('pagamentos_entregadores')
-        .select('estabelecimento_id')
-        .eq('entregador_id', entregadorId)
-        .order('criado_em', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (erroPagamento) console.error('Erro ao buscar estabelecimento em pagamentos:', erroPagamento);
-
-      if (pagamentoData?.estabelecimento_id) {
-        setEstabelecimentoVinculado(pagamentoData.estabelecimento_id);
-        console.log('✅ Estabelecimento vinculado encontrado em pagamentos:', pagamentoData.estabelecimento_id);
-        return;
-      }
-
-      // Se não encontrou em pagamentos, buscar através dos pedidos finalizados
-      const { data: pedidosData, error: erroPedidos } = await supabase
+      const { data: pedidosData, error } = await supabase
         .from('pedidos')
         .select('estabelecimento_id, estabelecimento_nome')
         .eq('entregador_id', entregadorId)
-        .in('status', ['entregue', 'no_local'])
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .in('status', ['entregue', 'no_local']);
 
-      if (erroPedidos) console.error('Erro ao buscar estabelecimento em pedidos:', erroPedidos);
+      if (error) throw error;
 
-      if (pedidosData?.estabelecimento_id) {
-        setEstabelecimentoVinculado(pedidosData.estabelecimento_id);
-        console.log('✅ Estabelecimento vinculado encontrado em pedidos:', pedidosData.estabelecimento_id);
-        return;
+      if (pedidosData && pedidosData.length > 0) {
+        const unicos: {id: string, nome: string}[] = [];
+        const map = new Map();
+        for (const item of pedidosData) {
+          if (item.estabelecimento_id && item.estabelecimento_nome && !map.has(item.estabelecimento_id)) {
+            map.set(item.estabelecimento_id, true);
+            unicos.push({
+              id: item.estabelecimento_id,
+              nome: item.estabelecimento_nome
+            });
+          }
+        }
+        setEstabelecimentos(unicos);
+        if (unicos.length === 1) {
+          setEstabelecimentoSelecionado(unicos[0].id);
+        }
       }
-
-      console.log('⚠️ Nenhum estabelecimento vinculado encontrado para este entregador');
-      setEstabelecimentoVinculado(null);
     } catch (error) {
-      console.error('Erro ao carregar estabelecimento vinculado:', error);
+      console.error('Erro ao carregar estabelecimentos:', error);
     }
   };
 
@@ -240,13 +229,13 @@ export default function ModalSaldo({ aberto, entregadorId, onClose, onPagamentoV
       return;
     }
 
-    if (valorNumerico < 10) {
-      alert('Valor mínimo para retirada é R$ 10,00');
+    if (valorNumerico <= 0) {
+      alert('Informe um valor válido maior que zero');
       return;
     }
 
-    if (!estabelecimentoVinculado) {
-      alert('⚠️ Nenhum estabelecimento vinculado. Você precisa receber um pagamento primeiro.');
+    if (!estabelecimentoSelecionado) {
+      alert('⚠️ Selecione de qual local você está solicitando a retirada.');
       return;
     }
 
@@ -255,7 +244,7 @@ export default function ModalSaldo({ aberto, entregadorId, onClose, onPagamentoV
     try {
       const { error } = await supabase.from('solicitacoes_retirada').insert([{
         entregador_id: entregadorId,
-        estabelecimento_id: estabelecimentoVinculado,
+        estabelecimento_id: estabelecimentoSelecionado,
         valor: valorNumerico,
         status: 'pendente',
       }]);
@@ -569,6 +558,22 @@ export default function ModalSaldo({ aberto, entregadorId, onClose, onPagamentoV
               <form onSubmit={handleSolicitarRetirada} className="mb-6">
                 <div className="mb-4">
                   <label className="block text-sm font-bold text-gray-700 mb-2">
+                    De qual local deseja retirar? *
+                  </label>
+                  <select
+                    value={estabelecimentoSelecionado}
+                    onChange={(e) => setEstabelecimentoSelecionado(e.target.value)}
+                    disabled={temRetiradaPendente || temRetiradaAprovadaNaoPaga}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 outline-none font-bold bg-white mb-4 disabled:bg-gray-100"
+                    required
+                  >
+                    <option value="" disabled>Selecione um estabelecimento...</option>
+                    {estabelecimentos.map(est => (
+                      <option key={est.id} value={est.id}>{est.nome}</option>
+                    ))}
+                  </select>
+
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
                     Valor da Retirada *
                   </label>
                   <div className="relative">
@@ -579,14 +584,14 @@ export default function ModalSaldo({ aberto, entregadorId, onClose, onPagamentoV
                       onChange={(e) => setValorRetirada(e.target.value)}
                       placeholder="0,00"
                       step="0.01"
-                      min="10"
+                      min="0.01"
                       disabled={temRetiradaPendente || temRetiradaAprovadaNaoPaga}
                       className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none font-bold disabled:bg-gray-100 disabled:cursor-not-allowed"
                       required
                     />
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
-                    💡 Valor mínimo: R$ 10,00
+                    💡 Você pode solicitar a retirada de qualquer valor do seu saldo disponível.
                   </p>
                 </div>
 
