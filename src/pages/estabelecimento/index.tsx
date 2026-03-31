@@ -16,7 +16,7 @@ interface Pedido {
   cliente: string;
   endereco: string;
   itens: string[] | string;
-  status: 'pendente' | 'aceito' | 'em_transito' | 'no_local' | 'entregue';
+  status: 'pendente' | 'em_preparacao' | 'em_rota' | 'entregue' | 'cancelado' | 'aceito' | 'em_transito' | 'no_local';
   entregador_id?: string | null;
   entregadorId?: string;
   entregadorNome?: string;
@@ -109,6 +109,11 @@ export default function Estabelecimento() {
   const [filtroProduto, setFiltroProduto] = useState('');
   const [produtoEditando, setProdutoEditando] = useState<any | null>(null);
   const [mostrarModalEdicao, setMostrarModalEdicao] = useState(false);
+  const [abaHistorico, setAbaHistorico] = useState<'pagamentos' | 'pedidos'>('pagamentos');
+  const [filtroDataInicio, setFiltroDataInicio] = useState('');
+  const [filtroDataFim, setFiltroDataFim] = useState('');
+  const [historicoPedidos, setHistoricoPedidos] = useState<Pedido[]>([]);
+  const [carregandoHistorico, setCarregandoHistorico] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Estados para chaves PIX
@@ -552,6 +557,7 @@ export default function Estabelecimento() {
 
     carregarPedidos();
     carregarFilaPedidos();
+    carregarHistoricoPedidos();
 
     // Atualizar lista periodicamente
     const intervalo = setInterval(carregarPedidos, 5000);
@@ -608,6 +614,39 @@ export default function Estabelecimento() {
       console.error('Erro ao carregar pedidos:', error);
       setPedidos([]);
       setStatusConexao('offline');
+    }
+  };
+
+  const carregarHistoricoPedidos = async () => {
+    if (!estabelecimentoId) return;
+    setCarregandoHistorico(true);
+    try {
+      const { data, error } = await supabase
+        .from('pedidos')
+        .select(`
+          *,
+          entregador:entregador_id (
+            nome,
+            telefone
+          )
+        `)
+        .eq('estabelecimento_id', estabelecimentoId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      
+      const normalizados = (data || []).map(p => ({
+        ...p,
+        entregadorNome: p.entregador?.nome,
+        entregadorTelefone: p.entregador?.telefone,
+        createdAt: new Date(p.created_at)
+      }));
+      
+      setHistoricoPedidos(normalizados);
+    } catch (error) {
+      console.error('Erro ao carregar histórico de pedidos:', error);
+    } finally {
+      setCarregandoHistorico(false);
     }
   };
 
@@ -2488,113 +2527,274 @@ export default function Estabelecimento() {
             </section>
           )}
 
-          {/* Histórico de Pagamentos */}
+          {/* Histórico e Abas */}
           <section className="bg-white rounded-xl shadow-lg p-6 mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                💰 Histórico de Pagamentos
-              </h2>
-              <button
-                onClick={carregarPagamentos}
-                className="text-red-600 hover:text-red-700 text-sm font-medium flex items-center gap-1"
-              >
-                🔄 Atualizar
-              </button>
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => setAbaHistorico('pagamentos')}
+                  className={`text-xl font-bold pb-2 transition-all border-b-4 ${
+                    abaHistorico === 'pagamentos' 
+                      ? 'text-gray-800 border-red-600' 
+                      : 'text-gray-400 border-transparent hover:text-gray-600'
+                  }`}
+                >
+                  💰 Histórico de Pagamentos
+                </button>
+                <button
+                  onClick={() => setAbaHistorico('pedidos')}
+                  className={`text-xl font-bold pb-2 transition-all border-b-4 ${
+                    abaHistorico === 'pedidos' 
+                      ? 'text-gray-800 border-red-600' 
+                      : 'text-gray-400 border-transparent hover:text-gray-600'
+                  }`}
+                >
+                  📦 Histórico de Pedidos
+                </button>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 bg-gray-50 p-2 rounded-xl border border-gray-100">
+                <span className="text-xs font-bold text-gray-500 uppercase ml-2 mr-1">📅 Filtrar Data:</span>
+                <input
+                  type="date"
+                  value={filtroDataInicio}
+                  onChange={(e) => setFiltroDataInicio(e.target.value)}
+                  className="text-sm border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500 p-1.5"
+                />
+                <span className="text-gray-400">até</span>
+                <input
+                  type="date"
+                  value={filtroDataFim}
+                  onChange={(e) => setFiltroDataFim(e.target.value)}
+                  className="text-sm border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500 p-1.5"
+                />
+                {(filtroDataInicio || filtroDataFim) && (
+                  <button
+                    onClick={() => { setFiltroDataInicio(''); setFiltroDataFim(''); }}
+                    className="text-xs text-red-600 hover:underline font-bold px-2"
+                  >
+                    Limpar
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    if (abaHistorico === 'pagamentos') carregarPagamentos();
+                    else carregarPedidos();
+                  }}
+                  className="bg-red-600 text-white p-2 rounded-lg hover:bg-red-700 transition-colors ml-2"
+                  title="Atualizar"
+                >
+                  🔄
+                </button>
+              </div>
             </div>
 
-            {carregandoPagamentos ? (
-              <div className="text-center py-8">
-                <div className="animate-spin text-4xl mb-2">🔄</div>
-                <p className="text-gray-500">Carregando pagamentos...</p>
-              </div>
-            ) : pagamentos.length === 0 ? (
-              <div className="text-center py-8 bg-gray-50 rounded-lg">
-                <span className="text-5xl">📭</span>
-                <p className="text-gray-500 mt-4">Nenhum pagamento registrado</p>
-                <p className="text-gray-400 text-sm mt-2">
-                  Os pagamentos realizados aparecerão aqui
-                </p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-red-50">
-                    <tr>
-                      <th className="text-left text-xs font-bold text-red-700 uppercase py-3 px-4">Data</th>
-                      <th className="text-left text-xs font-bold text-red-700 uppercase py-3 px-4">Entregador</th>
-                      <th className="text-left text-xs font-bold text-red-700 uppercase py-3 px-4">Forma</th>
-                      <th className="text-left text-xs font-bold text-red-700 uppercase py-3 px-4">Descrição</th>
-                      <th className="text-left text-xs font-bold text-red-700 uppercase py-3 px-4">📦 Itens do Pedido</th>
-                      <th className="text-right text-xs font-bold text-red-700 uppercase py-3 px-4">Valor</th>
-                      <th className="text-center text-xs font-bold text-red-700 uppercase py-3 px-4">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pagamentos.map((pagamento) => {
-                      // Obter itens do pedido (prioriza itens_em_pedido, depois busca via retirada)
-                      const itensPedido = pagamento.itens_em_pedido || pagamento.retirada?.pedido?.itens;
-                      
-                      return (
-                        <tr key={pagamento.id} className="border-t border-gray-100 hover:bg-red-50 transition-colors">
-                          <td className="py-3 px-4 text-sm text-gray-700">
-                            {new Date(pagamento.criado_em).toLocaleDateString('pt-BR')}
-                          </td>
-                          <td className="py-3 px-4 text-sm">
-                            <div>
-                              <p className="font-medium text-gray-800">{pagamento.entregador?.nome}</p>
-                              <p className="text-xs text-gray-500">{pagamento.entregador?.telefone}</p>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 text-sm">
-                            {pagamento.forma_pagamento === 'pix' && '💠 PIX'}
-                            {pagamento.forma_pagamento === 'dinheiro' && '💵 Dinheiro'}
-                            {pagamento.forma_pagamento === 'transferencia' && '🏦 Transferência'}
-                          </td>
-                          <td className="py-3 px-4 text-sm text-gray-600">
-                            <div>
-                              <p className="max-w-xs truncate">{pagamento.descricao || '-'}</p>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 text-sm">
-                            {itensPedido ? (
-                              <div className="flex flex-wrap gap-1 max-w-md">
+            {abaHistorico === 'pagamentos' ? (
+              /* TABELA DE PAGAMENTOS */
+              carregandoPagamentos ? (
+                <div className="flex flex-col items-center justify-center py-20">
+                  <div className="w-12 h-12 border-4 border-red-200 border-t-red-600 rounded-full animate-spin mb-4"></div>
+                  <p className="text-gray-500 font-medium animate-pulse">Buscando pagamentos...</p>
+                </div>
+              ) : pagamentos.length === 0 ? (
+                <div className="text-center py-20 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
+                  <span className="text-6xl mb-4 block">💰</span>
+                  <p className="text-gray-500 font-bold text-xl">Nenhum pagamento registrado</p>
+                  <p className="text-gray-400 mt-2">Os registros de repasses aparecerão aqui.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto custom-scrollbar">
+                  <table className="w-full border-separate border-spacing-y-2">
+                    <thead>
+                      <tr className="text-gray-400 text-[10px] uppercase tracking-widest font-black">
+                        <th className="py-3 px-4 text-left">Data</th>
+                        <th className="py-3 px-4 text-left">Entregador</th>
+                        <th className="py-3 px-4 text-left">Método</th>
+                        <th className="py-3 px-4 text-left">Descrição</th>
+                        <th className="py-3 px-4 text-left">Itens</th>
+                        <th className="py-3 px-4 text-right">Valor</th>
+                        <th className="py-3 px-4 text-center">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pagamentos
+                        .filter(p => {
+                          if (!filtroDataInicio && !filtroDataFim) return true;
+                          const dataPag = new Date(p.criado_em);
+                          dataPag.setHours(0, 0, 0, 0);
+                          if (filtroDataInicio && dataPag < new Date(filtroDataInicio + 'T00:00:00')) return false;
+                          if (filtroDataFim && dataPag > new Date(filtroDataFim + 'T23:59:59')) return false;
+                          return true;
+                        })
+                        .map((pagamento) => {
+                        const itensPedido = pagamento.itens_em_pedido || pagamento.retirada?.pedido?.itens;
+                        return (
+                          <tr key={pagamento.id} className="bg-white border border-gray-100 shadow-sm hover:shadow-md hover:scale-[1.01] transition-all duration-200 group">
+                            <td className="py-4 px-4 text-sm font-bold text-gray-500 group-hover:text-red-600">
+                              {new Date(pagamento.criado_em).toLocaleDateString('pt-BR')}
+                            </td>
+                            <td className="py-4 px-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 bg-gradient-to-br from-red-100 to-red-200 rounded-full flex items-center justify-center text-red-600 font-bold text-xs">
+                                  {pagamento.entregador?.nome?.charAt(0).toUpperCase() || 'E'}
+                                </div>
+                                <div>
+                                  <p className="text-sm font-black text-gray-800">{pagamento.entregador?.nome}</p>
+                                  <p className="text-[10px] text-gray-500 font-medium">{pagamento.entregador?.telefone}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-4 px-4">
+                              <span className="flex items-center gap-1.5 text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">
+                                {pagamento.forma_pagamento === 'pix' ? '💠 PIX' : '💵 Dinheiro'}
+                              </span>
+                            </td>
+                            <td className="py-4 px-4 text-xs text-gray-600 italic">
+                              {pagamento.descricao || 'Retirada de saldo'}
+                            </td>
+                            <td className="py-4 px-4">
+                              <div className="flex flex-wrap gap-1">
                                 {Array.isArray(itensPedido) ? (
-                                  itensPedido.map((item: string, i: number) => (
-                                    <span key={i} className="text-[10px] bg-red-100 text-red-700 px-2 py-1 rounded border border-red-200 font-medium">
+                                  itensPedido.slice(0, 2).map((item: string, i: number) => (
+                                    <span key={i} className="text-[9px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded border border-gray-200 font-bold uppercase">
                                       {item}
                                     </span>
                                   ))
                                 ) : (
-                                  <span className="text-[10px] bg-red-100 text-red-700 px-2 py-1 rounded border border-red-200 font-medium">
+                                  <span className="text-[9px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded border border-gray-200 font-bold uppercase">
                                     {itensPedido}
                                   </span>
                                 )}
+                                {Array.isArray(itensPedido) && itensPedido.length > 2 && (
+                                  <span className="text-[9px] text-gray-400 font-bold">+{itensPedido.length - 2}</span>
+                                )}
                               </div>
-                            ) : (
-                              <span className="text-xs text-gray-400 italic">Sem itens vinculados</span>
-                            )}
-                          </td>
-                          <td className="py-3 px-4 text-sm font-bold text-red-600 text-right">
-                            {parseFloat(pagamento.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                          </td>
-                          <td className="py-3 px-4 text-center">
-                            {pagamento.status === 'realizado' && (
-                              <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium">
-                                ✅ Realizado
+                            </td>
+                            <td className="py-4 px-4 text-right">
+                              <p className="text-sm font-black text-red-600">
+                                {parseFloat(pagamento.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                              </p>
+                            </td>
+                            <td className="py-4 px-4 text-center">
+                              <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase shadow-sm ${
+                                pagamento.status === 'realizado' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+                              }`}>
+                                {pagamento.status}
                               </span>
-                            )}
-                            {pagamento.status === 'cancelado' && (
-                              <span className="bg-red-100 text-red-700 px-2 py-1 rounded-full text-xs font-medium">
-                                ❌ Cancelado
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )
+            ) : (
+              /* TABELA DE HISTÓRICO DE PEDIDOS */
+              carregandoHistorico ? (
+                <div className="flex flex-col items-center justify-center py-20">
+                  <div className="w-12 h-12 border-4 border-red-200 border-t-red-600 rounded-full animate-spin mb-4"></div>
+                  <p className="text-gray-500 font-medium animate-pulse">Processando histórico...</p>
+                </div>
+              ) : historicoPedidos.length === 0 ? (
+                <div className="text-center py-20 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
+                  <span className="text-6xl mb-4 block">📦</span>
+                  <p className="text-gray-500 font-bold text-xl">Nenhum pedido no histórico</p>
+                  <p className="text-gray-400 mt-2">Os pedidos finalizados aparecerão aqui.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto custom-scrollbar">
+                  <table className="w-full border-separate border-spacing-y-2">
+                    <thead>
+                      <tr className="text-gray-400 text-[10px] uppercase tracking-widest font-black">
+                        <th className="py-3 px-4 text-left">Pedido</th>
+                        <th className="py-3 px-4 text-left">Data/Hora</th>
+                        <th className="py-3 px-4 text-left">Entregador</th>
+                        <th className="py-3 px-4 text-left">Pagamento</th>
+                        <th className="py-3 px-4 text-left">Itens</th>
+                        <th className="py-3 px-4 text-right">Total</th>
+                        <th className="py-3 px-4 text-center">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {historicoPedidos
+                        .filter(p => {
+                          if (!filtroDataInicio && !filtroDataFim) return true;
+                          const dataPed = new Date(p.created_at || p.createdAt);
+                          if (filtroDataInicio && dataPed < new Date(filtroDataInicio + 'T00:00:00')) return false;
+                          if (filtroDataFim && dataPed > new Date(filtroDataFim + 'T23:59:59')) return false;
+                          return true;
+                        })
+                        .map((pedido) => (
+                          <tr key={pedido.id} className="bg-white border border-gray-100 shadow-sm hover:shadow-md hover:scale-[1.01] transition-all duration-200 group">
+                            <td className="py-4 px-4">
+                              <span className="text-sm font-black text-gray-800 group-hover:text-red-600 transition-colors">
+                                #{pedido.id.slice(-6).toUpperCase()}
                               </span>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                            </td>
+                            <td className="py-4 px-4">
+                              <p className="text-sm font-bold text-gray-600">
+                                {new Date(pedido.created_at || pedido.createdAt).toLocaleDateString('pt-BR')}
+                              </p>
+                              <p className="text-[10px] text-gray-400 font-medium">
+                                {new Date(pedido.created_at || pedido.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                            </td>
+                            <td className="py-4 px-4">
+                              {pedido.entregadorNome ? (
+                                <div className="flex items-center gap-2">
+                                  <div className="w-7 h-7 bg-red-50 rounded-full flex items-center justify-center text-[10px] font-bold text-red-600 border border-red-100">
+                                    {pedido.entregadorNome.charAt(0)}
+                                  </div>
+                                  <p className="text-xs font-bold text-gray-700">{pedido.entregadorNome}</p>
+                                </div>
+                              ) : (
+                                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter italic">Pendente</span>
+                              )}
+                            </td>
+                            <td className="py-4 px-4">
+                              <span className="text-[10px] font-black text-gray-500 bg-gray-50 px-2 py-1 rounded border border-gray-200">
+                                {pedido.forma_pagamento || 'N/A'}
+                              </span>
+                            </td>
+                            <td className="py-4 px-4">
+                              <div className="flex flex-wrap gap-1 max-w-[200px]">
+                                {Array.isArray(pedido.itens) ? (
+                                  pedido.itens.slice(0, 2).map((item, i) => (
+                                    <span key={i} className="text-[9px] bg-red-50 text-red-600 px-1.5 py-0.5 rounded font-bold uppercase">
+                                      {item}
+                                    </span>
+                                  ))
+                                ) : (
+                                  <span className="text-[9px] bg-red-50 text-red-600 px-1.5 py-0.5 rounded font-bold uppercase">
+                                    {pedido.itens}
+                                  </span>
+                                )}
+                                {Array.isArray(pedido.itens) && pedido.itens.length > 2 && (
+                                  <span className="text-[9px] text-gray-400 font-black">+{pedido.itens.length - 2}</span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-4 px-4 text-right">
+                              <p className="text-sm font-black text-gray-900">
+                                {formatarValor((pedido.valor_pedido || 0) + (pedido.valor_entregador || 0))}
+                              </p>
+                            </td>
+                            <td className="py-4 px-4 text-center">
+                              <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase shadow-sm ${
+                                pedido.status === 'entregue' ? 'bg-green-500 text-white' : 
+                                pedido.status === 'cancelado' ? 'bg-red-500 text-white' : 
+                                'bg-blue-500 text-white'
+                              }`}>
+                                {pedido.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              )
             )}
           </section>
         </div>
@@ -2669,7 +2869,7 @@ export default function Estabelecimento() {
                       <span className="text-6xl mb-4 block">📄</span>
                       <p className="text-gray-600 mb-4">Arquivo PDF</p>
                       <a
-                        href={comprovanteSelecionado}
+                        href={comprovanteSelecionado || '#'}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition-colors"
@@ -2680,7 +2880,7 @@ export default function Estabelecimento() {
                   ) : (
                     <div className="border-2 border-gray-200 rounded-xl overflow-hidden">
                       <img
-                        src={comprovanteSelecionado}
+                        src={comprovanteSelecionado || ''}
                         alt="Comprovante de Pagamento"
                         className="w-full h-auto"
                       />
@@ -2691,7 +2891,7 @@ export default function Estabelecimento() {
                 {/* Botões de Ação */}
                 <div className="flex gap-3">
                   <a
-                    href={comprovanteSelecionado}
+                    href={comprovanteSelecionado || '#'}
                     target="_blank"
                     rel="noopener noreferrer"
                     download
@@ -2701,6 +2901,7 @@ export default function Estabelecimento() {
                   </a>
                   <button
                     onClick={async () => {
+                      if (!comprovanteSelecionado) return;
                       try {
                         await navigator.clipboard.writeText(comprovanteSelecionado);
                         alert('✅ Link do comprovante copiado!');

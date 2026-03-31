@@ -267,21 +267,6 @@ export default function ModalSaldo({ aberto, entregadorId, onClose, onPagamentoV
     }
   };
 
-  const handleConfirmarRecebimento = async (solicitacaoId: string) => {
-    try {
-      const { error } = await supabase
-        .from('solicitacoes_retirada')
-        .update({ status: 'concluida' })
-        .eq('id', solicitacaoId);
-      
-      if (error) throw error;
-      carregarSolicitacoes();
-    } catch (error) {
-      console.error('Erro ao confirmar recebimento:', error);
-      alert('Erro ao confirmar recebimento.');
-    }
-  };
-
   const formatarMoeda = (valor: number) => {
     return valor.toLocaleString('pt-BR', {
       style: 'currency',
@@ -391,7 +376,7 @@ export default function ModalSaldo({ aberto, entregadorId, onClose, onPagamentoV
                 setTravarEstabelecimento(false);
                 setPedidoIdRetirada(null);
               }}
-              className={`flex-1 py-3 px-4 rounded-xl font-bold transition-all text-sm ${
+              className={`hidden flex-1 py-3 px-4 rounded-xl font-bold transition-all text-sm ${
                 abaAtiva === 'retiradas'
                   ? 'bg-green-600 text-white shadow-lg scale-105'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -702,14 +687,6 @@ export default function ModalSaldo({ aberto, entregadorId, onClose, onPagamentoV
                             </span>
                           </div>
 
-                          {solicitacao.status === 'aprovada' && (
-                            <button
-                              onClick={() => handleConfirmarRecebimento(solicitacao.id)}
-                              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-lg text-sm shadow-md transition-all active:scale-95 flex items-center justify-center gap-2"
-                            >
-                              🤝 Confirmar que recebi o valor
-                            </button>
-                          )}
                         </div>
                       </div>
                     ))}
