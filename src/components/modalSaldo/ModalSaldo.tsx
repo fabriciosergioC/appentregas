@@ -245,10 +245,12 @@ export default function ModalSaldo({ aberto, entregadorId, onClose, onPagamentoV
 
     // Notificação de confirmação com prazo de processamento
     const confirmacao = window.confirm(
-      '⚠️ ATENÇÃO\\n\\n' +
-      '📅 O prazo de processamento é de até 3 dias úteis.\\n\\n' +
-      '💡 Caso você receba o pagamento antes desse prazo, entre em contato com o suporte.\\n\\n' +
-      'Deseja continuar com a solicitação de retirada?'
+      '⚠️ ATENÇÃO - SOLICITAÇÃO DE RETIRADA\n\n' +
+      '📅 Prazo de Processamento:\n' +
+      '   O prazo para processamento da sua solicitação é de até 3 dias úteis.\n\n' +
+      '💡 Importante:\n' +
+      '   Caso você NÃO receba o pagamento dentro desse prazo, entre em contato com o suporte.\n\n' +
+      'Deseja continuar com a solicitação?'
     );
 
     if (!confirmacao) {
