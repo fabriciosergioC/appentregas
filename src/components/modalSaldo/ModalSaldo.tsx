@@ -584,7 +584,7 @@ export default function ModalSaldo({ aberto, entregadorId, onClose, onPagamentoV
                     <div>
                       <p className="font-bold text-yellow-800">Retirada Pendente</p>
                       <p className="text-sm text-yellow-700 mt-1">
-                        Você já possui uma solicitação de retirada aguardando aprovação do estabelecimento.
+                        Solicitação de retirada aguardando aprovação do estabelecimento.
                       </p>
                       <p className="text-xs text-yellow-600 mt-2 font-bold">
                         💡 Você só poderá solicitar um novo saque após este ser aceito ou cancelado.
