@@ -12,6 +12,7 @@ interface PedidoCardProps {
   onCheguei?: () => void;
   onFinalizar?: () => void;
   mostrarAcoes?: boolean;
+  isHistorico?: boolean;
 }
 
 export default function PedidoCard({
@@ -23,6 +24,7 @@ export default function PedidoCard({
   onCheguei,
   onFinalizar,
   mostrarAcoes = false,
+  isHistorico = false,
 }: PedidoCardProps) {
   const statusColors = {
     pendente: 'bg-yellow-100 text-yellow-800',
@@ -55,13 +57,20 @@ export default function PedidoCard({
             <p className="text-gray-500 text-sm">🏪 {pedido.estabelecimento_nome}</p>
           )}
         </div>
-        <span
-          className={`px-3 py-1 rounded-full text-sm font-medium ${
-            statusColors[pedido.status]
-          }`}
-        >
-          {statusLabels[pedido.status]}
-        </span>
+        <div className="flex flex-col items-end gap-1">
+          <span
+            className={`px-3 py-1 rounded-full text-sm font-medium ${
+              statusColors[pedido.status]
+            }`}
+          >
+            {statusLabels[pedido.status]}
+          </span>
+          {isHistorico && (
+            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+              Finalizado
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="space-y-2">
@@ -112,7 +121,8 @@ export default function PedidoCard({
         <div className="flex items-center gap-2">
           <span className="text-gray-500">🕐</span>
           <p className="text-gray-600 text-sm">
-            {new Date(pedido.created_at).toLocaleString('pt-BR')}
+            {isHistorico ? 'Entregue em: ' : 'Criado em: '}
+            {new Date(pedido.updated_at || pedido.created_at).toLocaleString('pt-BR')}
           </p>
         </div>
 
@@ -137,7 +147,7 @@ export default function PedidoCard({
         )}
       </div>
 
-      {mostrarAcoes && (
+      {mostrarAcoes && !isHistorico && (
         <div className="mt-4 space-y-2">
           {pedido.status === 'pendente' && onAceitar && (
             <div className="grid grid-cols-2 gap-2">

@@ -32,14 +32,24 @@ export default function PainelClientePage() {
   const [mostrarHistorico, setMostrarHistorico] = useState(false);
   const [historicoPedidos, setHistoricoPedidos] = useState<any[]>([]);
   const [loadingHistorico, setLoadingHistorico] = useState(false);
+  const [cliente, setCliente] = useState<any>(null);
 
-  // Verificar se vem um ID pela URL (parâmetro ?id=)
+  // Verificar autenticação e ID pela URL
   useEffect(() => {
+    // 1. Verificar se o cliente está logado
+    const clienteLogado = localStorage.getItem('cliente_user');
+    if (!clienteLogado) {
+      router.push('/login-cliente');
+      return;
+    }
+    setCliente(JSON.parse(clienteLogado));
+
+    // 2. Verificar se vem um ID pela URL (parâmetro ?id=)
     const idParam = searchParams?.get('id');
     if (idParam) {
       setPedidoId(idParam);
     }
-  }, [searchParams]);
+  }, [searchParams, router]);
 
   // Buscar estabelecimentos
   useEffect(() => {
@@ -101,7 +111,14 @@ export default function PainelClientePage() {
   const carregarHistorico = async () => {
     setLoadingHistorico(true);
     try {
-      // Carregar todos os pedidos concluídos ou cancelados
+      if (!cliente?.telefone) {
+        setHistoricoPedidos([]);
+        return;
+      }
+
+      const telFormatado = cliente.telefone.replace(/\D/g, '');
+
+      // Carregar pedidos concluídos ou cancelados deste cliente
       const { data, error } = await supabase
         .from('fila_pedidos')
         .select(`
@@ -110,17 +127,14 @@ export default function PainelClientePage() {
             nome_estabelecimento
           )
         `)
+        .eq('telefone_cliente', telFormatado)
         .in('status', ['entregue', 'cancelado'])
         .order('created_at', { ascending: false })
         .limit(50);
 
       if (error) throw error;
       
-      // Filtrar apenas pedidos que têm telefone_cliente (feitos pelo cliente)
-      // Isso diferencia pedidos feitos pelo estabelecimento manualmente
-      const pedidosCliente = (data || []).filter(pedido => pedido.telefone_cliente);
-      
-      setHistoricoPedidos(pedidosCliente);
+      setHistoricoPedidos(data || []);
     } catch (err) {
       console.error('Erro ao carregar histórico:', err);
     } finally {
@@ -134,6 +148,12 @@ export default function PainelClientePage() {
       carregarHistorico();
     }
   }, [mostrarHistorico]);
+
+  // Função de Logout
+  const handleLogout = () => {
+    localStorage.removeItem('cliente_user');
+    router.push('/login-cliente');
+  };
 
   return (
     <div className="bg-animated-red">
@@ -153,13 +173,27 @@ export default function PainelClientePage() {
               Acompanhe seu Pedido
             </h1>
 
-            {/* Botão de Histórico */}
-            <div className="mt-4">
+            {cliente && (
+              <p className="page-subtitle-white mt-2">
+                Olá, <span className="font-bold">{cliente.nome.split(' ')[0]}</span>! 👋
+              </p>
+            )}
+
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-6">
+              {/* Botão de Histórico */}
               <button
                 onClick={() => setMostrarHistorico(true)}
-                className="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white font-bold py-3 px-6 rounded-xl transition-all duration-200 flex items-center gap-2 mx-auto shadow-lg"
+                className="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white font-bold py-3 px-6 rounded-xl transition-all duration-200 flex items-center gap-2 shadow-lg"
               >
-                📜 Meu Histórico de Pedidos
+                📜 Histórico
+              </button>
+
+              {/* Botão de Sair */}
+              <button
+                onClick={handleLogout}
+                className="bg-red-500/20 hover:bg-red-500/40 backdrop-blur-sm text-white font-bold py-3 px-6 rounded-xl transition-all duration-200 flex items-center gap-2 shadow-lg border border-red-400/30"
+              >
+                🚪 Sair da Conta
               </button>
             </div>
 

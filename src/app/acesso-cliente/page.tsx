@@ -29,7 +29,7 @@ export default function AcessoCliente() {
           {/* Único Botão de Ação */}
           <div className="space-y-3">
             <Link
-              href="/painel-cliente"
+              href="/login-cliente"
               className="btn-animated btn-white"
             >
               <span className="btn-content">

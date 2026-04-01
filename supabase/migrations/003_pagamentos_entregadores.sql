@@ -54,7 +54,7 @@ DECLARE
 BEGIN
   -- Quando pagamento é criado com status 'realizado'
   IF NEW.status = 'realizado' THEN
-    -- Verificar saldo atual do entregador
+    -- Buscar saldo atual do entregador
     SELECT saldo INTO saldo_atual
     FROM entregadores
     WHERE id = NEW.entregador_id;
@@ -69,11 +69,12 @@ BEGIN
     SET saldo = saldo - NEW.valor
     WHERE id = NEW.entregador_id;
 
-    -- Registrar no extrato como debito
-    INSERT INTO extratos (entregador_id, pedido_id, tipo, valor, descricao)
+    -- Registrar no extrato como debito com estabelecimento_id
+    INSERT INTO extratos (entregador_id, pedido_id, estabelecimento_id, tipo, valor, descricao)
     VALUES (
       NEW.entregador_id,
       NULL,
+      NEW.estabelecimento_id,
       'debito',
       NEW.valor,
       'Pagamento recebido - ' || INITCAP(NEW.forma_pagamento) || 

@@ -7,6 +7,7 @@
 import {
   supabase,
   entregadoresApi,
+  clientesApi,
   pedidosApi,
   realtime,
   type Pedido,
@@ -52,6 +53,30 @@ export const api = {
 
   async redefinirSenha(telefone: string, token: string, novaSenha: string) {
     return await entregadoresApi.redefinirSenha(telefone, token, novaSenha);
+  },
+
+  // =============================================
+  // CLIENTES
+  // =============================================
+
+  async loginCliente(telefone: string, senha?: string) {
+    return await clientesApi.login(telefone, senha);
+  },
+
+  async cadastrarCliente(nome: string, telefone: string, senha: string, email?: string) {
+    return await clientesApi.cadastrar(nome, telefone, senha, email);
+  },
+
+  async solicitarRecuperacaoSenhaCliente(telefone: string) {
+    return await clientesApi.solicitarRecuperacaoSenha(telefone);
+  },
+
+  async validarTokenRecuperacaoCliente(telefone: string, token: string) {
+    return await clientesApi.validarTokenRecuperacao(telefone, token);
+  },
+
+  async redefinirSenhaCliente(telefone: string, token: string, novaSenha: string) {
+    return await clientesApi.redefinirSenha(telefone, token, novaSenha);
   },
 
   // =============================================

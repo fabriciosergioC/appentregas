@@ -21,7 +21,7 @@ export default function Pedidos() {
   const [pedidosDisponiveis, setPedidosDisponiveis] = useState<Pedido[]>([]);
   const [meusPedidos, setMeusPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tabAtiva, setTabAtiva] = useState<'disponiveis' | 'meus'>('disponiveis');
+  const [tabAtiva, setTabAtiva] = useState<'disponiveis' | 'meus' | 'historico'>('disponiveis');
   const [modalSaldoAberto, setModalSaldoAberto] = useState(false);
   const [temPedidoNovo, setTemPedidoNovo] = useState(false);
   const [audioSilenciadoManualmente, setAudioSilenciadoManualmente] = useState(false);
@@ -42,6 +42,12 @@ export default function Pedidos() {
   const [bancoPix, setBancoPix] = useState('');
   const [chavesPixSalvas, setChavesPixSalvas] = useState<any[]>([]);
   const [loadingChavePix, setLoadingChavePix] = useState(false);
+  
+  // Estados para histórico
+  const [pedidosHistorico, setPedidosHistorico] = useState<Pedido[]>([]);
+  const [carregandoHistorico, setCarregandoHistorico] = useState(false);
+  const [filtroDataInicio, setFiltroDataInicio] = useState('');
+  const [filtroDataFim, setFiltroDataFim] = useState('');
 
   // Atualizar ref quando pedidosRecusados mudar
   useEffect(() => {
@@ -294,16 +300,46 @@ export default function Pedidos() {
     };
   }, [router, iniciarSomRepetitivo]);
 
-  // Carregar chaves PIX quando mostrarChavesPix for true
+  // Carregar histórico quando tabAtiva for 'historico' ou datas mudarem
   useEffect(() => {
-    if (mostrarChavesPix) {
-      carregarChavesPix();
+    const id = getEntregadorId();
+    if (tabAtiva === 'historico' && id) {
+      carregarHistoricoPedidos(id);
     }
-  }, [mostrarChavesPix]);
+  }, [tabAtiva, filtroDataInicio, filtroDataFim]);
 
   // Função para remover todas as assinaturas
   const limparAssinaturas = () => {
     removerAssinaturaPedidos();
+  };
+
+  const carregarHistoricoPedidos = async (entregadorId: string) => {
+    setCarregandoHistorico(true);
+    try {
+      console.log('🔄 Carregando histórico...', { entregadorId, filtroDataInicio, filtroDataFim });
+      
+      let query = supabase
+        .from('pedidos')
+        .select('*')
+        .eq('entregador_id', entregadorId)
+        .eq('status', 'entregue');
+
+      if (filtroDataInicio) {
+        query = query.gte('created_at', `${filtroDataInicio}T00:00:00`);
+      }
+      if (filtroDataFim) {
+        query = query.lte('created_at', `${filtroDataFim}T23:59:59`);
+      }
+
+      const { data, error } = await query.order('updated_at', { ascending: false });
+
+      if (error) throw error;
+      setPedidosHistorico(data || []);
+    } catch (error) {
+      console.error('❌ Erro ao carregar histórico:', error);
+    } finally {
+      setCarregandoHistorico(false);
+    }
   };
 
   const carregarPedidos = async (entregadorId: string) => {
@@ -736,25 +772,102 @@ export default function Pedidos() {
                 ))}
               </div>
             )
-          ) : meusPedidos.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
-              <div className="bg-gray-100 w-24 h-24 rounded-full flex items-center justify-center mb-6">
-                <span className="text-5xl">🛵</span>
+          ) : tabAtiva === 'meus' ? (
+            meusPedidos.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
+                <div className="bg-gray-100 w-24 h-24 rounded-full flex items-center justify-center mb-6">
+                  <span className="text-5xl">🛵</span>
+                </div>
+                <h3 className="text-lg font-bold text-gray-800 mb-2">Sua mochila está vazia</h3>
+                <p className="text-gray-500 text-sm leading-relaxed">Você ainda não aceitou nenhum pedido. Verifique a aba de disponíveis!</p>
               </div>
-              <h3 className="text-lg font-bold text-gray-800 mb-2">Sua mochila está vazia</h3>
-              <p className="text-gray-500 text-sm leading-relaxed">Você ainda não aceitou nenhum pedido. Verifique a aba de disponíveis!</p>
-            </div>
+            ) : (
+              <div className="space-y-4">
+                {meusPedidos.map((pedido) => (
+                  <PedidoCard
+                    key={pedido.id}
+                    pedido={pedido}
+                    onIniciar={() => handleIniciarEntrega(pedido.id)}
+                    onFinalizar={() => handleFinalizarEntrega(pedido)}
+                    mostrarAcoes
+                  />
+                ))}
+              </div>
+            )
           ) : (
-            <div className="space-y-4">
-              {meusPedidos.map((pedido) => (
-                <PedidoCard
-                  key={pedido.id}
-                  pedido={pedido}
-                  onIniciar={() => handleIniciarEntrega(pedido.id)}
-                  onFinalizar={() => handleFinalizarEntrega(pedido)}
-                  mostrarAcoes
-                />
-              ))}
+            /* Tab Histórico */
+            <div className="space-y-4 pb-10">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-xl font-bold text-gray-800">📋 Histórico de Entregas</h2>
+                {(filtroDataInicio || filtroDataFim) && (
+                  <button
+                    onClick={() => {
+                      setFiltroDataInicio('');
+                      setFiltroDataFim('');
+                    }}
+                    className="text-xs text-red-500 font-bold hover:underline"
+                  >
+                    ✕ Limpar Filtros
+                  </button>
+                )}
+              </div>
+
+              {/* Estatísticas Simples */}
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
+                  <p className="text-[10px] text-blue-600 font-bold uppercase mb-1">Entregas</p>
+                  <p className="text-2xl font-black text-blue-900">{pedidosHistorico.length}</p>
+                </div>
+                <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border border-green-200">
+                  <p className="text-[10px] text-green-600 font-bold uppercase mb-1">Total Ganho</p>
+                  <p className="text-2xl font-black text-green-900">
+                    {pedidosHistorico.reduce((acc, p) => acc + (p.valor_entregador || 0), 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                  </p>
+                </div>
+              </div>
+
+              {/* Filtros de Data */}
+              <div className="grid grid-cols-2 gap-2 mb-6">
+                <div>
+                  <label className="text-[10px] text-gray-500 font-bold uppercase ml-1">Início</label>
+                  <input
+                    type="date"
+                    value={filtroDataInicio}
+                    onChange={(e) => setFiltroDataInicio(e.target.value)}
+                    className="w-full bg-white border border-gray-200 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-gray-500 font-bold uppercase ml-1">Fim</label>
+                  <input
+                    type="date"
+                    value={filtroDataFim}
+                    onChange={(e) => setFiltroDataFim(e.target.value)}
+                    className="w-full bg-white border border-gray-200 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-sm"
+                  />
+                </div>
+              </div>
+
+              {carregandoHistorico && pedidosHistorico.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin text-4xl mb-4 text-purple-600">🌀</div>
+                  <p className="text-gray-500">Carregando histórico...</p>
+                </div>
+              ) : pedidosHistorico.length === 0 ? (
+                <div className="bg-white rounded-2xl p-12 text-center shadow-lg border border-gray-100 italic text-gray-400">
+                  Nenhuma entrega encontrada no período.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {pedidosHistorico.map((pedido) => (
+                    <PedidoCard
+                      key={pedido.id}
+                      pedido={pedido}
+                      isHistorico={true}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </main>
@@ -807,6 +920,20 @@ export default function Pedidos() {
               </div>
               <span className={`text-[10px] font-bold ${tabAtiva === 'meus' ? 'text-blue-600' : 'text-gray-500'}`}>
                 Meus Pedidos
+              </span>
+            </button>
+            <div className="w-px h-8 bg-gray-200"></div>
+            <button
+              onClick={() => setTabAtiva('historico')}
+              className={`flex-1 flex flex-col items-center justify-center space-y-1 h-full relative transition-colors ${
+                tabAtiva === 'historico' ? 'text-purple-600 bg-purple-50/50' : 'text-gray-400 hover:text-gray-600'
+              }`}
+            >
+              <div className="relative mt-1">
+                <span className="text-[22px]">📋</span>
+              </div>
+              <span className={`text-[10px] font-bold ${tabAtiva === 'historico' ? 'text-purple-600' : 'text-gray-500'}`}>
+                Histórico
               </span>
             </button>
           </div>

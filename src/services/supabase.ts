@@ -47,6 +47,17 @@ export interface EntregadoresPedidos {
   created_at: string;
 }
 
+export interface Cliente {
+  id: string;
+  nome: string;
+  telefone: string;
+  email?: string | null;
+  senha_hash: string;
+  endereco_padrao?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 // URLs do Supabase
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -256,6 +267,130 @@ export const entregadoresApi = {
     return () => {
       supabase.removeChannel(channel);
     };
+  },
+};
+
+// =============================================
+// FUNÇÕES DE CLIENTES
+// =============================================
+
+export const clientesApi = {
+  // Login de cliente
+  async login(telefone: string, senha?: string) {
+    const { data: cliente, error } = await supabase
+      .from('clientes')
+      .select('*')
+      .eq('telefone', telefone)
+      .single();
+
+    if (error || !cliente) {
+      throw new Error('Cliente não encontrado');
+    }
+
+    if (cliente.senha_hash) {
+      const senhaDecodificada = atob(cliente.senha_hash);
+      if (senhaDecodificada !== senha) {
+        throw new Error('Senha incorreta');
+      }
+    }
+
+    return { data: cliente, error: null };
+  },
+
+  // Cadastro de cliente
+  async cadastrar(nome: string, telefone: string, senha: string, email?: string) {
+    const { data, error } = await supabase
+      .from('clientes')
+      .insert([
+        {
+          nome,
+          telefone,
+          email: email || null,
+          senha_hash: btoa(senha),
+        },
+      ])
+      .select()
+      .single();
+
+    return { data, error };
+  },
+
+  // Solicitar recuperação de senha
+  async solicitarRecuperacaoSenha(telefone: string) {
+    const { data: cliente, error: buscaError } = await supabase
+      .from('clientes')
+      .select('id, telefone, nome')
+      .eq('telefone', telefone)
+      .single();
+
+    if (buscaError || !cliente) {
+      return { data: { solicitado: true }, error: null };
+    }
+
+    const token = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiracao = new Date();
+    expiracao.setHours(expiracao.getHours() + 1);
+
+    const { data, error } = await supabase
+      .from('clientes')
+      .update({
+        token_recuperacao: token,
+        token_expiracao: expiracao.toISOString(),
+      })
+      .eq('id', cliente.id)
+      .select('nome')
+      .single();
+
+    const nomeParcial = data?.nome 
+      ? data.nome.split(' ')[0] + (data.nome.split(' ')[1] ? ' ' + data.nome.split(' ')[1][0] + '.' : '')
+      : '';
+
+    return { 
+      data: { 
+        solicitado: true, 
+        token,
+        nomeParcial
+      }, 
+      error 
+    };
+  },
+
+  // Validar token
+  async validarTokenRecuperacao(telefone: string, token: string) {
+    const { data, error } = await supabase
+      .from('clientes')
+      .select('id')
+      .eq('telefone', telefone)
+      .eq('token_recuperacao', token)
+      .gte('token_expiracao', new Date().toISOString())
+      .single();
+
+    if (error || !data) {
+      return { data: null, error: new Error('Token inválido ou expirado') };
+    }
+
+    return { data: { id: data.id }, error: null };
+  },
+
+  // Redefinir senha
+  async redefinirSenha(telefone: string, token: string, novaSenha: string) {
+    const validacao = await this.validarTokenRecuperacao(telefone, token);
+    if (validacao.error || !validacao.data) {
+      return { data: null, error: new Error('Token inválido ou expirado') };
+    }
+
+    const { data, error } = await supabase
+      .from('clientes')
+      .update({
+        senha_hash: btoa(novaSenha),
+        token_recuperacao: null,
+        token_expiracao: null,
+      })
+      .eq('id', validacao.data.id)
+      .select()
+      .single();
+
+    return { data, error };
   },
 };
 

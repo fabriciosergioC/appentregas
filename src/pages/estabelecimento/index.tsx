@@ -73,7 +73,7 @@ export default function Estabelecimento() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(false);
   const [filtroAtivo, setFiltroAtivo] = useState<FiltroPedidos>('todos');
-  const [filtroIdPedido, setFiltroIdPedido] = useState('');
+  const [filtroEntregador, setFiltroEntregador] = useState('');
   const [statusConexao, setStatusConexao] = useState<'online' | 'offline'>('online');
   const [linkCopiado, setLinkCopiado] = useState<string | null>(null);
   const [ultimoPedidoCriado, setUltimoPedidoCriado] = useState<string | null>(null);
@@ -775,7 +775,18 @@ export default function Estabelecimento() {
   };
 
   const pedidosFiltrados = pedidos.filter((pedido) => {
-    if (filtroIdPedido && !pedido.id.toLowerCase().includes(filtroIdPedido.toLowerCase())) {
+    // Filtro por Data
+    if (filtroDataInicio) {
+      const dInicio = new Date(filtroDataInicio + 'T00:00:00');
+      if (pedido.createdAt < dInicio) return false;
+    }
+    if (filtroDataFim) {
+      const dFim = new Date(filtroDataFim + 'T23:59:59');
+      if (pedido.createdAt > dFim) return false;
+    }
+    
+    // Filtro por Entregador
+    if (filtroEntregador && (!pedido.entregadorNome || !pedido.entregadorNome.toLowerCase().includes(filtroEntregador.toLowerCase()))) {
       return false;
     }
 
@@ -786,11 +797,28 @@ export default function Estabelecimento() {
     return true;
   });
 
+  const filtrarParaContagem = (p: Pedido) => {
+    // Data
+    if (filtroDataInicio) {
+      const dInicio = new Date(filtroDataInicio + 'T00:00:00');
+      if (p.createdAt < dInicio) return false;
+    }
+    if (filtroDataFim) {
+      const dFim = new Date(filtroDataFim + 'T23:59:59');
+      if (p.createdAt > dFim) return false;
+    }
+    // Entregador
+    if (filtroEntregador && (!p.entregadorNome || !p.entregadorNome.toLowerCase().includes(filtroEntregador.toLowerCase()))) {
+      return false;
+    }
+    return true;
+  };
+
   const contagemPedidos = {
-    todos: pedidos.filter(p => !filtroIdPedido || p.id.toLowerCase().includes(filtroIdPedido.toLowerCase())).length,
-    pendentes: pedidos.filter(p => (!filtroIdPedido || p.id.toLowerCase().includes(filtroIdPedido.toLowerCase())) && (p.status === 'pendente' || p.status === 'aceito')).length,
-    em_entrega: pedidos.filter(p => (!filtroIdPedido || p.id.toLowerCase().includes(filtroIdPedido.toLowerCase())) && (p.status === 'em_transito' || p.status === 'no_local')).length,
-    entregues: pedidos.filter(p => (!filtroIdPedido || p.id.toLowerCase().includes(filtroIdPedido.toLowerCase())) && p.status === 'entregue').length,
+    todos: pedidos.filter(p => filtrarParaContagem(p)).length,
+    pendentes: pedidos.filter(p => filtrarParaContagem(p) && (p.status === 'pendente' || p.status === 'aceito')).length,
+    em_entrega: pedidos.filter(p => filtrarParaContagem(p) && (p.status === 'em_transito' || p.status === 'no_local')).length,
+    entregues: pedidos.filter(p => filtrarParaContagem(p) && p.status === 'entregue').length,
   };
 
   const handleCriarPedido = async (e: React.FormEvent) => {
@@ -1855,16 +1883,58 @@ export default function Estabelecimento() {
 
             {/* Filtros */}
             <div className="flex flex-col gap-4 mb-4">
-              {/* Pesquisa por ID */}
-              <div className="relative w-full">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
-                <input
-                  type="text"
-                  placeholder="Buscar pelo Pedido # (ex: 78f2)"
-                  value={filtroIdPedido}
-                  onChange={(e) => setFiltroIdPedido(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-red-200 focus:border-red-500 focus:outline-none transition-all text-sm font-medium"
-                />
+              {/* Pesquisa por ID e Entregador */}
+              {/* Filtros: Datas e Entregador */}
+              <div className="flex flex-col gap-3 w-full">
+                <div className="flex flex-col md:flex-row gap-3">
+                  {/* Filtro de Data Início */}
+                  <div className="relative flex-1">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">📅</span>
+                    <input
+                      type="date"
+                      value={filtroDataInicio}
+                      onChange={(e) => setFiltroDataInicio(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-red-200 focus:border-red-500 focus:outline-none transition-all text-sm font-bold h-11 bg-white"
+                      title="Data de Início"
+                    />
+                    <span className="absolute -top-2 left-3 bg-white px-1 text-[10px] font-bold text-gray-500 uppercase">Início</span>
+                  </div>
+
+                  {/* Filtro de Data Fim */}
+                  <div className="relative flex-1">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">📅</span>
+                    <input
+                      type="date"
+                      value={filtroDataFim}
+                      onChange={(e) => setFiltroDataFim(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-red-200 focus:border-red-500 focus:outline-none transition-all text-sm font-bold h-11 bg-white"
+                      title="Data de Fim"
+                    />
+                    <span className="absolute -top-2 left-3 bg-white px-1 text-[10px] font-bold text-gray-500 uppercase">Fim</span>
+                  </div>
+
+                  {/* Botão Limpar Datas */}
+                  {(filtroDataInicio || filtroDataFim) && (
+                    <button
+                      onClick={() => { setFiltroDataInicio(''); setFiltroDataFim(''); }}
+                      className="bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold px-4 py-2 rounded-xl transition-all text-xs flex items-center justify-center gap-1 border border-gray-200"
+                    >
+                      ✕ Limpar
+                    </button>
+                  )}
+                </div>
+                
+                <div className="relative w-full">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🛵</span>
+                  <input
+                    type="text"
+                    placeholder="Filtrar por Entregador..."
+                    value={filtroEntregador}
+                    onChange={(e) => setFiltroEntregador(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-red-200 focus:border-red-500 focus:outline-none transition-all text-sm font-bold h-11 bg-white"
+                  />
+                  <span className="absolute -top-2 left-3 bg-white px-1 text-[10px] font-bold text-gray-500 uppercase">Entregador</span>
+                </div>
               </div>
 
               {/* Abas */}

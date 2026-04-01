@@ -10,6 +10,7 @@ interface Extrato {
   id: string;
   entregador_id: string;
   pedido_id: string | null;
+  estabelecimento_id: string | null;
   tipo: 'credito' | 'debito' | 'saque';
   valor: number;
   descricao: string;
@@ -17,6 +18,9 @@ interface Extrato {
   pedidos?: {
     estabelecimento_nome: string | null;
     estabelecimento_id: string | null;
+  };
+  estabelecimento?: {
+    nome_estabelecimento: string | null;
   };
 }
 
@@ -30,6 +34,9 @@ interface Pagamento {
   comprovante_pix: string | null;
   status: string;
   criado_em: string;
+  estabelecimento?: {
+    nome_estabelecimento: string;
+  };
 }
 
 interface SolicitacaoRetirada {
@@ -65,6 +72,8 @@ export default function ModalSaldo({ aberto, entregadorId, onClose, onPagamentoV
   const [estabelecimentoSelecionado, setEstabelecimentoSelecionado] = useState<string>('');
   const [travarEstabelecimento, setTravarEstabelecimento] = useState(false);
   const [pedidoIdRetirada, setPedidoIdRetirada] = useState<string | null>(null);
+  const [filtroDataInicio, setFiltroDataInicio] = useState('');
+  const [filtroDataFim, setFiltroDataFim] = useState('');
 
   useEffect(() => {
     if (aberto && entregadorId) {
@@ -73,7 +82,7 @@ export default function ModalSaldo({ aberto, entregadorId, onClose, onPagamentoV
       carregarSolicitacoes();
       carregarEstabelecimentoVinculado();
     }
-  }, [aberto, entregadorId, abaAtiva]);
+  }, [aberto, entregadorId, abaAtiva, filtroDataInicio, filtroDataFim]);
 
   const carregarEstabelecimentoVinculado = async () => {
     try {
@@ -124,19 +133,36 @@ export default function ModalSaldo({ aberto, entregadorId, onClose, onPagamentoV
 
       setSaldo(entregador?.saldo || 0);
 
-      // Buscar extratos (últimos 50)
-      const { data: extratosData } = await supabase
+      // Buscar extratos (últimos 100)
+      let query = supabase
         .from('extratos')
         .select(`
           *,
           pedidos (
             estabelecimento_nome,
             estabelecimento_id
-          )
+          ),
+          estabelecimento:estabelecimento_id(nome_estabelecimento)
         `)
-        .eq('entregador_id', entregadorId)
+        .eq('entregador_id', entregadorId);
+
+      // Aplicar Filtro de Data Início
+      if (filtroDataInicio) {
+        const dInicio = new Date(filtroDataInicio + 'T00:00:00').toISOString();
+        query = query.gte('created_at', dInicio);
+      }
+
+      // Aplicar Filtro de Data Fim
+      if (filtroDataFim) {
+        const dFim = new Date(filtroDataFim + 'T23:59:59').toISOString();
+        query = query.lte('created_at', dFim);
+      }
+
+      const { data: extratosData, error: errorExtrato } = await query
         .order('created_at', { ascending: false })
-        .limit(50);
+        .limit(100);
+
+      if (errorExtrato) console.error('Erro ao buscar extrato:', errorExtrato);
 
       setExtratos(extratosData || []);
     } catch (error) {
@@ -150,7 +176,7 @@ export default function ModalSaldo({ aberto, entregadorId, onClose, onPagamentoV
     try {
       const { data, error } = await supabase
         .from('pagamentos_entregadores')
-        .select('*')
+        .select('*, estabelecimento:estabelecimento_id(nome_estabelecimento)')
         .eq('entregador_id', entregadorId)
         .order('criado_em', { ascending: false })
         .limit(50);
@@ -403,9 +429,44 @@ export default function ModalSaldo({ aberto, entregadorId, onClose, onPagamentoV
           {/* Conteúdo do Extrato */}
           {abaAtiva === 'extrato' && (
             <>
-              <h3 className="text-xl font-bold text-gray-800 mb-4">
-                📋 Extrato
-              </h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-gray-800">
+                  📋 Extrato
+                </h3>
+                {(filtroDataInicio || filtroDataFim) && (
+                  <button
+                    onClick={() => {
+                      setFiltroDataInicio('');
+                      setFiltroDataFim('');
+                    }}
+                    className="text-xs text-red-500 font-bold hover:underline"
+                  >
+                    ✕ Limpar Filtros
+                  </button>
+                )}
+              </div>
+
+              {/* Filtros de Data */}
+              <div className="grid grid-cols-2 gap-2 mb-6">
+                <div>
+                  <label className="text-[10px] text-gray-500 font-bold uppercase ml-1">Início</label>
+                  <input
+                    type="date"
+                    value={filtroDataInicio}
+                    onChange={(e) => setFiltroDataInicio(e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-gray-500 font-bold uppercase ml-1">Fim</label>
+                  <input
+                    type="date"
+                    value={filtroDataFim}
+                    onChange={(e) => setFiltroDataFim(e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                  />
+                </div>
+              </div>
 
               {loading ? (
                 <div className="text-center py-8">
@@ -430,11 +491,26 @@ export default function ModalSaldo({ aberto, entregadorId, onClose, onPagamentoV
                         <span className="text-2xl">{getTipoIcon(extrato.tipo)}</span>
                         <div>
                           <p className="font-medium text-gray-800">
-                            {extrato.pedidos?.estabelecimento_nome 
-                              ? (extrato.descricao.includes('Entrega finalizada') ? `Entrega finalizada - ${extrato.pedidos.estabelecimento_nome}` : extrato.descricao)
-                              : extrato.descricao}
+                            {extrato.tipo === 'credito' ? (
+                              <>
+                                🥡 Entrega finalizada - 
+                                <span className="text-gray-600 ml-1">
+                                  {extrato.estabelecimento?.nome_estabelecimento || extrato.pedidos?.estabelecimento_nome || 'Estabelecimento'}
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                💳 Pagamento recebido - 
+                                <span className="text-gray-600 ml-1">
+                                  {extrato.estabelecimento?.nome_estabelecimento || 'Estabelecimento'}
+                                </span>
+                              </>
+                            )}
                           </p>
-                          <p className="text-xs text-gray-500">{formatarData(extrato.created_at)}</p>
+                          <p className="text-[10px] text-gray-500">{formatarData(extrato.created_at)}</p>
+                          {extrato.descricao && !extrato.descricao.includes('Entrega finalizada') && !extrato.descricao.includes('Pagamento recebido') && (
+                            <p className="text-[10px] text-gray-400 mt-0.5 italic">{extrato.descricao}</p>
+                          )}
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-2">
@@ -499,7 +575,10 @@ export default function ModalSaldo({ aberto, entregadorId, onClose, onPagamentoV
                               {formatarMoeda(pagamento.valor)}
                             </span>
                           </div>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-gray-800 font-bold mt-1">
+                            🏢 {pagamento.estabelecimento?.nome_estabelecimento || 'Estabelecimento'}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-0.5">
                             {formatarData(pagamento.criado_em)}
                           </p>
                           {pagamento.descricao && (

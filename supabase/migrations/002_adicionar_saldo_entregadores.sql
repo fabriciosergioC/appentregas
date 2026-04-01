@@ -17,6 +17,7 @@ COMMENT ON COLUMN entregadores.saldo IS 'Saldo acumulado do entregador das entre
 CREATE TABLE IF NOT EXISTS extratos (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   entregador_id UUID REFERENCES entregadores(id) ON DELETE CASCADE,
+  estabelecimento_id UUID REFERENCES estabelecimentos(id) ON DELETE SET NULL, -- NEW COLUMN
   pedido_id UUID REFERENCES pedidos(id) ON DELETE SET NULL,
   tipo VARCHAR(20) NOT NULL CHECK (tipo IN ('credito', 'debito', 'saque')),
   valor DECIMAL(10,2) NOT NULL,
@@ -82,25 +83,25 @@ BEGIN
       WHERE id = NEW.entregador_id;
 
       -- Registrar no extrato
-      INSERT INTO extratos (entregador_id, pedido_id, tipo, valor, descricao)
+      INSERT INTO extratos (entregador_id, pedido_id, estabelecimento_id, tipo, valor, descricao)
       VALUES (
         NEW.entregador_id,
         NEW.id,
+        NEW.estabelecimento_id,
         'credito',
         valor_entrega,
-        'Entrega finalizada - Pedido ' || SUBSTRING(NEW.id::text FROM 1 FOR 8) || 
-        ' (' || INITCAP(pedido_record.forma_pagamento) || ')'
+        'Entrega finalizada - ' || INITCAP(COALESCE(pedido_record.forma_pagamento, 'Cartão'))
       );
     ELSE
       -- Registrar no extrato que foi pagamento em dinheiro (não acumula saldo)
-      INSERT INTO extratos (entregador_id, pedido_id, tipo, valor, descricao)
+      INSERT INTO extratos (entregador_id, pedido_id, estabelecimento_id, tipo, valor, descricao)
       VALUES (
         NEW.entregador_id,
         NEW.id,
+        NEW.estabelecimento_id,
         'credito',
         0,
-        'Entrega finalizada - Pedido ' || SUBSTRING(NEW.id::text FROM 1 FOR 8) || 
-        ' (Dinheiro - não acumula saldo)'
+        'Entrega finalizada - Dinheiro (não acumula saldo)'
       );
     END IF;
   END IF;
