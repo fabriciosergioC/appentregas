@@ -248,6 +248,36 @@ export default function ModalSaldo({ aberto, entregadorId, onClose, onPagamentoV
   const handleSolicitarRetirada = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!entregadorId) return;
+
+    // 1. Validar se tem chave PIX cadastrada (Obrigatório antes do saque)
+    try {
+      const { count, error: errorPix } = await supabase
+        .from('chaves_pix_entregadores')
+        .select('*', { count: 'exact', head: true })
+        .eq('entregador_id', entregadorId);
+
+      if (errorPix) throw errorPix;
+
+      if (!count || count === 0) {
+        alert(
+          '⚠️ ATENÇÃO: Cadastro de Chave PIX Obrigatório\n\n' +
+          'Você ainda não possui nenhuma chave PIX cadastrada. ' +
+          'Para sua segurança e recebimento correto, você precisa cadastrar ao menos uma chave.\n\n' +
+          '👉 Como fazer:\n' +
+          '   1. Volte para a tela inicial\n' +
+          '   2. Clique no botão "💠 PIX"\n' +
+          '   3. Cadastre sua chave e tente novamente.'
+        );
+        return;
+      }
+    } catch (err) {
+      console.error('Erro ao validar chave PIX:', err);
+      // Em caso de erro técnico na consulta, alertamos por segurança.
+      alert('Erro ao validar informações. Verifique sua conexão.');
+      return;
+    }
+
     const valorNumerico = parseFloat(valorRetirada.replace(',', '.'));
     if (!valorRetirada || isNaN(valorNumerico) || valorNumerico <= 0) {
       alert('Informe um valor válido');

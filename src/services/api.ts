@@ -117,6 +117,18 @@ export const api = {
     return await pedidosApi.finalizarPedido(id);
   },
 
+  async solicitarDevolucao(id: string, motivo: string) {
+    return await pedidosApi.solicitarDevolucao(id, motivo);
+  },
+
+  async processarDevolucao(id: string, motivo: string) {
+    return await pedidosApi.processarDevolucao(id, motivo);
+  },
+
+  async listarSolicitacoesDevolucao(estabelecimentoId: string) {
+    return await pedidosApi.listarSolicitacoesDevolucao(estabelecimentoId);
+  },
+
   async criarPedido(cliente: string, endereco: string, itens: string[], estabelecimentoNome?: string, valorPedido?: number, valorEntregador?: number, estabelecimentoEndereco?: string, formaPagamento?: string, estabelecimentoId?: string) {
     const resultado = await pedidosApi.criarPedido(cliente, endereco, itens, estabelecimentoNome, valorPedido, valorEntregador, estabelecimentoEndereco, formaPagamento, estabelecimentoId);
 

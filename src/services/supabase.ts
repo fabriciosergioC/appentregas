@@ -24,7 +24,8 @@ export interface Pedido {
   cliente: string;
   endereco: string;
   itens: string[];
-  status: 'pendente' | 'aceito' | 'em_transito' | 'no_local' | 'entregue';
+  status: 'pendente' | 'aceito' | 'em_transito' | 'no_local' | 'entregue' | 'solicitado_devolucao' | 'devolvido';
+  motivo_devolucao: string | null;
   entregador_id: string | null;
   estabelecimento_nome: string | null;
   estabelecimento_endereco: string | null;
@@ -611,6 +612,57 @@ export const pedidosApi = {
     }
 
     return { data: pedido, error };
+  },
+
+  // Solicitar devolução (Entregador)
+  async solicitarDevolucao(pedidoId: string, motivo: string) {
+    const { data, error } = await supabase
+      .from('pedidos')
+      .update({
+        status: 'solicitado_devolucao',
+        motivo_devolucao: motivo,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', pedidoId)
+      .select()
+      .single();
+
+    return { data, error };
+  },
+
+  // Processar devolução (Administrador/Estabelecimento)
+  async processarDevolucao(pedidoId: string, motivo: string) {
+    const { data, error } = await supabase
+      .from('pedidos')
+      .update({
+        status: 'devolvido',
+        motivo_devolucao: motivo,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', pedidoId)
+      .select()
+      .single();
+
+    return { data, error };
+  },
+
+  // Listar pedidos solicitados para devolução
+  async listarSolicitacoesDevolucao(estabelecimentoId: string) {
+    const { data, error } = await supabase
+      .from('pedidos')
+      .select(`
+        *,
+        entregador:entregador_id (
+          id,
+          nome,
+          telefone
+        )
+      `)
+      .eq('estabelecimento_id', estabelecimentoId)
+      .eq('status', 'solicitado_devolucao')
+      .order('updated_at', { ascending: false });
+
+    return { data, error };
   },
 
   // Criar pedido (Estabelecimento)

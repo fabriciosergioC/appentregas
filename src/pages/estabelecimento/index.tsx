@@ -114,6 +114,7 @@ export default function Estabelecimento() {
   const [filtroDataFim, setFiltroDataFim] = useState('');
   const [historicoPedidos, setHistoricoPedidos] = useState<Pedido[]>([]);
   const [carregandoHistorico, setCarregandoHistorico] = useState(false);
+  const [devolucoesPendentes, setDevolucoesPendentes] = useState<Pedido[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Estados para chaves PIX
@@ -558,15 +559,28 @@ export default function Estabelecimento() {
     carregarPedidos();
     carregarFilaPedidos();
     carregarHistoricoPedidos();
+    carregarSolicitacoesDevolucao();
 
     // Atualizar lista periodicamente
-    const intervalo = setInterval(carregarPedidos, 5000);
-    const intervaloFila = setInterval(carregarFilaPedidos, 5000);
+    const intervalo = setInterval(() => {
+      carregarPedidos();
+      carregarFilaPedidos();
+      carregarSolicitacoesDevolucao();
+    }, 5000);
     return () => {
       clearInterval(intervalo);
-      clearInterval(intervaloFila);
     };
   }, [estabelecimentoId]);
+
+  const carregarSolicitacoesDevolucao = async () => {
+    if (!estabelecimentoId) return;
+    try {
+      const { data } = await api.listarSolicitacoesDevolucao(estabelecimentoId);
+      setDevolucoesPendentes(data || []);
+    } catch (err) {
+      console.error('Erro ao carregar solicitações de devolução:', err);
+    }
+  };
 
   const carregarPedidos = async () => {
     try {
@@ -1090,7 +1104,24 @@ export default function Estabelecimento() {
 
         {/* Header */}
         <header className="bg-gradient-to-r from-red-600 to-red-700 text-white p-4 shadow-xl lg:ml-72 sticky top-0 z-30">
-          <div className="flex justify-between items-center max-w-7xl mx-auto">
+          <div className="max-w-7xl mx-auto">
+            {/* Alerta de Devoluções de Urgência */}
+            {devolucoesPendentes.length > 0 && (
+              <div 
+                onClick={() => router.push('/estabelecimento/devolucoes')}
+                className="mb-4 bg-white text-red-600 p-3 rounded-xl flex items-center justify-between cursor-pointer animate-pulse shadow-lg transition-colors border-2 border-red-500"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">🚩</span>
+                  <div>
+                    <p className="font-black text-sm uppercase tracking-tighter">🚨 URGÊNCIA: {devolucoesPendentes.length} DEVOLUÇÃO(ÕES) SOLICITADA(S)</p>
+                    <p className="text-[10px] font-bold opacity-90">Entregadores não localizaram clientes e aguardam autorização de retorno.</p>
+                  </div>
+                </div>
+                <div className="bg-red-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase">Ver Agora</div>
+              </div>
+            )}
+            <div className="flex justify-between items-center">
             <div>
               <h1 className="text-xl font-bold">🏪 {usuarioLogado?.nome_estabelecimento || 'Painel do Estabelecimento'}</h1>
               {usuarioLogado && (
@@ -1113,6 +1144,7 @@ export default function Estabelecimento() {
                 <span>🚪</span>
                 <span className="hidden sm:inline">Sair</span>
               </button>
+            </div>
             </div>
           </div>
         </header>

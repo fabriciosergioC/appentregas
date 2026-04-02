@@ -79,6 +79,27 @@ export default function Mapa() {
     }
   };
 
+  const handleSolicitarDevolucao = async () => {
+    if (!pedidoAtivo) return;
+
+    if (!confirm('⚠️ Deseja solicitar a devolução deste pedido? O estabelecimento será notificado que o cliente não foi localizado.')) {
+      return;
+    }
+
+    try {
+      const { error } = await api.solicitarDevolucao(pedidoAtivo.id);
+      if (error) {
+        alert('Erro ao solicitar devolução: ' + error.message);
+        return;
+      }
+      alert('🚩 Devolução solicitada com sucesso! Retorne ao estabelecimento se necessário.');
+      router.push('/pedidos');
+    } catch (error) {
+      console.error('Erro ao solicitar devolução:', error);
+      alert('Erro ao solicitar devolução');
+    }
+  };
+
   // Abrir navegação no app nativo (Google Maps ou Waze)
   const abrirNavegacaoNativa = (app?: 'maps' | 'waze') => {
     if (!pedidoAtivo) {

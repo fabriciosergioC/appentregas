@@ -48,6 +48,9 @@ export default function Pedidos() {
   const [carregandoHistorico, setCarregandoHistorico] = useState(false);
   const [filtroDataInicio, setFiltroDataInicio] = useState('');
   const [filtroDataFim, setFiltroDataFim] = useState('');
+  const [mostrarModalSuporte, setMostrarModalSuporte] = useState(false);
+  const [mostrarEditorMotivo, setMostrarEditorMotivo] = useState<string | null>(null); // ID do pedido
+  const [motivoDevolucao, setMotivoDevolucao] = useState('');
 
   // Atualizar ref quando pedidosRecusados mudar
   useEffect(() => {
@@ -621,6 +624,64 @@ export default function Pedidos() {
     }
   };
 
+  const handleSolicitarDevolucao = async (pedidoId: string, motivo: string) => {
+    try {
+      const { error } = await api.solicitarDevolucao(pedidoId, motivo);
+      if (error) {
+        alert('Erro ao solicitar devolução: ' + error.message);
+        return;
+      }
+      
+      // Abre o WhatsApp
+      const msg = encodeURIComponent(`🚩 *SOLICITAÇÃO DE DEVOLUÇÃO*\n\n*Pedido:* #${pedidoId.slice(0, 8)}\n*Motivo:* ${motivo}\n*Entregador:* ${entregador?.nome || 'Não identificado'}`);
+      window.open(`https://wa.me/5531987707962?text=${msg}`, '_blank');
+
+      alert('🚩 Devolução solicitada e suporte notificado!');
+      
+      // Atualizar localmente
+      setMeusPedidos((prev) =>
+        prev.map((p) => (p.id === pedidoId ? { ...p, status: 'solicitado_devolucao' } : p))
+      );
+      
+      // Limpar estados
+      setMostrarEditorMotivo(null);
+      setMotivoDevolucao('');
+    } catch (error) {
+      console.error('Erro ao solicitar devolução:', error);
+      alert('Erro ao solicitar devolução');
+    }
+  };
+
+  const handleSuporte = () => {
+    setMostrarModalSuporte(true);
+  };
+
+  const handleFalarWhatsApp = () => {
+    const agora = new Date();
+    const dia = agora.getDay(); // 0-Domingo, 1-Segunda, 6-Sábado
+    const hora = agora.getHours();
+    const minutos = agora.getMinutes();
+    const totalMinutos = hora * 60 + minutos;
+
+    const inicioMinutos = 19 * 60; // 19:00
+    const fimMinutos = 21 * 60 + 30; // 21:30
+
+    // Atendimento: Segunda (1) a Sábado (6)
+    const isDiaAtendimento = dia >= 1 && dia <= 6;
+    const isHorarioAtendimento = totalMinutos >= inicioMinutos && totalMinutos <= fimMinutos;
+
+    if (isDiaAtendimento && isHorarioAtendimento) {
+      window.open('https://wa.me/5531987707962?text=Olá, sou entregador e preciso de suporte no app.', '_blank');
+    } else {
+      alert(
+        '📢 SUPORTE INDISPONÍVEL NO MOMENTO\n\nosso horário de atendimento por WhatsApp é:\n\n' +
+        '🗓️ Segunda a Sábado\n' +
+        '⏰ Das 19:00 às 21:30\n\n' +
+        'Por favor, retorne o contato durante esse período.'
+      );
+    }
+  };
+
   const handleLogout = () => {
     // Enviar mensagem para outras abas fecharem
     const channel = new BroadcastChannel(CHANNEL_NAME);
@@ -717,27 +778,27 @@ export default function Pedidos() {
           </div>
 
           {/* Grid de Ações */}
-          <div className="grid grid-cols-3 gap-3 mb-6">
-            <button
-              onClick={handleAtivarSomManualmente}
-              className="flex flex-col items-center justify-center p-3 bg-blue-50 hover:bg-blue-100 rounded-2xl text-blue-600 transition-colors"
-            >
-              <span className="text-2xl mb-1">🔔</span>
-              <span className="text-xs font-semibold">Som</span>
-            </button>
+          <div className="grid grid-cols-3 gap-2 mb-6">
             <button
               onClick={() => setModalSaldoAberto(true)}
-              className="flex flex-col items-center justify-center p-3 bg-green-50 hover:bg-green-100 rounded-2xl text-green-600 transition-colors"
+              className="flex flex-col items-center justify-center p-2 bg-green-50 hover:bg-green-100 rounded-xl text-green-600 transition-colors"
             >
-              <span className="text-2xl mb-1">💰</span>
-              <span className="text-xs font-semibold">Saldo</span>
+              <span className="text-xl mb-1">💰</span>
+              <span className="text-[10px] font-bold uppercase">Saldo</span>
             </button>
             <button
               onClick={() => setMostrarChavesPix(true)}
-              className="flex flex-col items-center justify-center p-3 bg-purple-50 hover:bg-purple-100 rounded-2xl text-purple-600 transition-colors"
+              className="flex flex-col items-center justify-center p-2 bg-purple-50 hover:bg-purple-100 rounded-xl text-purple-600 transition-colors"
             >
-              <span className="text-2xl mb-1">💠</span>
-              <span className="text-xs font-semibold">PIX</span>
+              <span className="text-xl mb-1">💠</span>
+              <span className="text-[10px] font-bold uppercase">PIX</span>
+            </button>
+            <button
+              onClick={handleSuporte}
+              className="flex flex-col items-center justify-center p-2 bg-orange-50 hover:bg-orange-100 rounded-xl text-orange-600 transition-colors border border-orange-100"
+            >
+              <span className="text-xl mb-1">🎧</span>
+              <span className="text-[10px] font-bold uppercase">Suporte</span>
             </button>
           </div>
 
@@ -788,6 +849,7 @@ export default function Pedidos() {
                     key={pedido.id}
                     pedido={pedido}
                     onIniciar={() => handleIniciarEntrega(pedido.id)}
+                    onCheguei={() => handleChegarLocal(pedido.id)}
                     onFinalizar={() => handleFinalizarEntrega(pedido)}
                     mostrarAcoes
                   />
@@ -1080,6 +1142,107 @@ export default function Pedidos() {
                     </div>
                   )}
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de Suporte e Devolução */}
+        {mostrarModalSuporte && (
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            onClick={(e) => e.target === e.currentTarget && setMostrarModalSuporte(false)}
+          >
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full animate-in fade-in zoom-in duration-200">
+              <div className="bg-orange-500 p-4 rounded-t-2xl flex justify-between items-center text-white">
+                <h3 className="font-bold flex items-center gap-2">🎧 Central de Ajuda</h3>
+                <button onClick={() => setMostrarModalSuporte(false)} className="text-white hover:opacity-75 text-xl font-bold">✕</button>
+              </div>
+
+              <div className="p-6 space-y-4">
+                {/* Contato Direto */}
+                <div className="space-y-3">
+                  <h4 className="text-gray-400 text-[10px] font-black uppercase tracking-widest text-center">Precisa de Ajuda?</h4>
+                  
+                  <button
+                    onClick={handleFalarWhatsApp}
+                    className="w-full bg-green-500 hover:bg-green-600 text-white py-4 rounded-xl font-bold shadow-lg transition-all flex items-center justify-center gap-3 text-lg"
+                  >
+                    <span>💬</span> Falar com Suporte
+                  </button>
+                  
+                  {/* Lista de Pedidos para Devolução (Aparece logo abaixo do suporte) */}
+                  {meusPedidos.filter(p => p.status === 'no_local').length > 0 && (
+                    <div className="pt-2 space-y-3">
+                      {meusPedidos.filter(p => p.status === 'no_local').map(pedido => (
+                        <div key={pedido.id} className="space-y-3">
+                          {!mostrarEditorMotivo ? (
+                            <button
+                              onClick={() => setMostrarEditorMotivo(pedido.id)}
+                              className="w-full bg-red-600 hover:bg-red-700 text-white py-4 rounded-xl font-bold shadow-lg transition-all flex items-center justify-center gap-3 text-lg"
+                            >
+                              <span>🚩</span> Não encontrei o cliente
+                            </button>
+                          ) : (
+                            <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-4 animate-in fade-in slide-in-from-top-2">
+                              <label className="block text-[10px] font-black text-red-900 uppercase tracking-widest mb-2">Qual o motivo da devolução?</label>
+                              <textarea
+                                value={motivoDevolucao}
+                                onChange={(e) => setMotivoDevolucao(e.target.value)}
+                                placeholder="Descreva brevemente o que aconteceu..."
+                                className="w-full p-3 border-2 border-red-200 rounded-xl focus:ring-2 focus:ring-red-200 focus:outline-none text-sm mb-3 min-h-[80px]"
+                                autoFocus
+                              />
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => {
+                                    if (!motivoDevolucao.trim()) {
+                                      alert('Por favor, informe o motivo antes de enviar.');
+                                      return;
+                                    }
+                                    handleSolicitarDevolucao(pedido.id, motivoDevolucao);
+                                  }}
+                                  className="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-bold shadow-md transition-all text-sm"
+                                >
+                                  Enviar p/ Suporte
+                                </button>
+                                <button
+                                  onClick={() => setMostrarEditorMotivo(null)}
+                                  className="px-4 py-3 bg-white text-gray-500 rounded-xl font-bold text-xs hover:bg-gray-50"
+                                >
+                                  Cancelar
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                          {!mostrarEditorMotivo && (
+                            <p className="text-[9px] text-gray-400 text-center uppercase font-bold tracking-tighter">Pedido #{pedido.id.slice(0, 8)}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <p className="text-[10px] text-gray-400 text-center italic mt-2">
+                    Atendimento de Seg. a Sáb, das 19:00 às 21:30
+                  </p>
+                </div>
+
+                {/* Caso não haja pedidos no local */}
+                {meusPedidos.filter(p => p.status === 'no_local').length === 0 && (
+                  <div className="bg-gray-50 rounded-xl p-4 text-center border border-gray-100">
+                    <p className="text-xs text-gray-500">A opção de <b>devolução</b> aparecerá aqui assim que você chegar ao endereço do cliente.</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-gray-100 p-4 rounded-b-2xl text-center">
+                <button 
+                  onClick={() => setMostrarModalSuporte(false)}
+                  className="text-gray-600 font-bold text-sm hover:text-gray-800"
+                >
+                  Fechar Menu
+                </button>
               </div>
             </div>
           </div>

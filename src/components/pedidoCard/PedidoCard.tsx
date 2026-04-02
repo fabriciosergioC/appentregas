@@ -11,6 +11,8 @@ interface PedidoCardProps {
   onIniciar?: () => void;
   onCheguei?: () => void;
   onFinalizar?: () => void;
+  onSolicitarDevolucao?: () => void;
+  onProcessarDevolucao?: () => void;
   mostrarAcoes?: boolean;
   isHistorico?: boolean;
 }
@@ -23,6 +25,8 @@ export default function PedidoCard({
   onIniciar,
   onCheguei,
   onFinalizar,
+  onSolicitarDevolucao,
+  onProcessarDevolucao,
   mostrarAcoes = false,
   isHistorico = false,
 }: PedidoCardProps) {
@@ -32,6 +36,8 @@ export default function PedidoCard({
     em_transito: 'bg-purple-100 text-purple-800',
     no_local: 'bg-orange-100 text-orange-800',
     entregue: 'bg-green-100 text-green-800',
+    solicitado_devolucao: 'bg-red-100 text-red-800 animate-pulse',
+    devolvido: 'bg-gray-100 text-gray-800',
   };
 
   const statusLabels = {
@@ -40,6 +46,8 @@ export default function PedidoCard({
     em_transito: '🚗 Em trânsito',
     no_local: '📍 No Local',
     entregue: '📦 Entregue',
+    solicitado_devolucao: '🚩 Devolução Solicitada',
+    devolvido: '🏠 Devolvido à Loja',
   };
 
   const formatarValor = (valor: number | null | undefined) => {
@@ -145,6 +153,14 @@ export default function PedidoCard({
             </div>
           </div>
         )}
+
+        {/* Motivo da devolução (se houver) */}
+        {pedido.status === 'devolvido' && pedido.motivo_devolucao && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3 mt-2">
+            <p className="text-red-900 text-xs font-bold uppercase mb-1">Motivo da Devolução:</p>
+            <p className="text-red-800 text-sm italic">"{pedido.motivo_devolucao}"</p>
+          </div>
+        )}
       </div>
 
       {mostrarAcoes && !isHistorico && (
@@ -227,12 +243,32 @@ export default function PedidoCard({
           )}
 
           {(pedido.status === 'em_transito' || pedido.status === 'no_local') && onFinalizar && (
-            <button
-              onClick={onFinalizar}
-              className="mt-2 w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
-            >
-              <span>✅</span> Finalizar Entrega
-            </button>
+            <>
+              <button
+                onClick={onFinalizar}
+                className="mt-2 w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+              >
+                <span>✅</span> Finalizar Entrega
+              </button>
+            </>
+          )}
+
+          {pedido.status === 'solicitado_devolucao' && (
+            <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4 text-center mt-4">
+              <p className="text-red-800 font-bold text-sm">🚩 Devolução Solicitada</p>
+              <p className="text-red-600 text-xs mt-1">
+                Aguarde o estabelecimento processar sua solicitação de retorno.
+              </p>
+              
+              {onProcessarDevolucao && (
+                <button
+                  onClick={onProcessarDevolucao}
+                  className="mt-4 w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
+                >
+                  Confirmar Recebimento (Admin)
+                </button>
+              )}
+            </div>
           )}
         </div>
       )}
