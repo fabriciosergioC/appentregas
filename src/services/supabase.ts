@@ -26,6 +26,7 @@ export interface Pedido {
   itens: string[];
   status: 'pendente' | 'aceito' | 'em_transito' | 'no_local' | 'entregue' | 'solicitado_devolucao' | 'devolvido';
   motivo_devolucao: string | null;
+  comprovantes_devolucao?: string[] | null;
   entregador_id: string | null;
   estabelecimento_nome: string | null;
   estabelecimento_endereco: string | null;
@@ -615,12 +616,13 @@ export const pedidosApi = {
   },
 
   // Solicitar devolução (Entregador)
-  async solicitarDevolucao(pedidoId: string, motivo: string) {
+  async solicitarDevolucao(pedidoId: string, motivo: string, comprovantes: string[]) {
     const { data, error } = await supabase
       .from('pedidos')
       .update({
         status: 'solicitado_devolucao',
         motivo_devolucao: motivo,
+        comprovantes_devolucao: comprovantes,
         updated_at: new Date().toISOString(),
       })
       .eq('id', pedidoId)

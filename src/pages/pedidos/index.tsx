@@ -51,6 +51,9 @@ export default function Pedidos() {
   const [mostrarModalSuporte, setMostrarModalSuporte] = useState(false);
   const [mostrarEditorMotivo, setMostrarEditorMotivo] = useState<string | null>(null); // ID do pedido
   const [motivoDevolucao, setMotivoDevolucao] = useState('');
+  const [fotosDevolucao, setFotosDevolucao] = useState<string[]>([]);
+  const [previewsDevolucao, setPreviewsDevolucao] = useState<string[]>([]);
+  const [uploadingFoto, setUploadingFoto] = useState(false);
 
   // Atualizar ref quando pedidosRecusados mudar
   useEffect(() => {
@@ -626,30 +629,85 @@ export default function Pedidos() {
 
   const handleSolicitarDevolucao = async (pedidoId: string, motivo: string) => {
     try {
-      const { error } = await api.solicitarDevolucao(pedidoId, motivo);
+      const { error } = await api.solicitarDevolucao(pedidoId, motivo, fotosDevolucao);
       if (error) {
         alert('Erro ao solicitar devolução: ' + error.message);
         return;
       }
       
-      // Abre o WhatsApp
-      const msg = encodeURIComponent(`🚩 *SOLICITAÇÃO DE DEVOLUÇÃO*\n\n*Pedido:* #${pedidoId.slice(0, 8)}\n*Motivo:* ${motivo}\n*Entregador:* ${entregador?.nome || 'Não identificado'}`);
+      // Abre o WhatsApp com instrução manual
+      const instrFotos = fotosDevolucao.length > 0 ? `\n\n📸 *ANEXE AS FOTOS:* Olá suporte, anexei ${fotosDevolucao.length} foto(s) de prova logo abaixo 👇` : '';
+      const msg = encodeURIComponent(`🚩 *SOLICITAÇÃO DE DEVOLUÇÃO*\n\n*Pedido:* #${pedidoId.slice(0, 8)}\n*Motivo:* ${motivo}${instrFotos}\n\n⚠️ *ENTREGADOR:* O sistema salvou suas fotos, mas o WhatsApp exige que você as envie manualmente abaixo.`);
+      
+      alert('🚩 Solicitação salva!\n\nO WhatsApp vai abrir. Por favor, ANEXE AS FOTOS na conversa para o suporte.');
       window.open(`https://wa.me/5531987707962?text=${msg}`, '_blank');
 
-      alert('🚩 Devolução solicitada e suporte notificado!');
-      
       // Atualizar localmente
-      setMeusPedidos((prev) =>
-        prev.map((p) => (p.id === pedidoId ? { ...p, status: 'solicitado_devolucao' } : p))
-      );
-      
-      // Limpar estados
-      setMostrarEditorMotivo(null);
-      setMotivoDevolucao('');
+      fecharEditorDevolucao();
     } catch (error) {
       console.error('Erro ao solicitar devolução:', error);
       alert('Erro ao solicitar devolução');
     }
+  };
+
+  const handleFotoDevolucaoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const arquivos = e.target.files;
+    if (!arquivos || arquivos.length === 0) return;
+
+    if (fotosDevolucao.length + arquivos.length > 2) {
+      alert('⚠️ Limite de 2 fotos por devolução atingido.');
+      return;
+    }
+
+    setUploadingFoto(true);
+
+    try {
+      for (let i = 0; i < arquivos.length; i++) {
+        const arquivo = arquivos[i];
+
+        // Validar tipo
+        if (!arquivo.type.startsWith('image/')) {
+          alert(`O arquivo ${arquivo.name} não é uma imagem.`);
+          continue;
+        }
+
+        // Validar tamanho (max 2MB para não pesar o JSONB)
+        if (arquivo.size > 2 * 1024 * 1024) {
+          alert(`A imagem ${arquivo.name} é muito grande. Máximo 2MB.`);
+          continue;
+        }
+
+        // Converter para Base64
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(arquivo);
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = error => reject(error);
+        });
+
+        setFotosDevolucao(prev => [...prev, base64]);
+        setPreviewsDevolucao(prev => [...prev, base64]);
+      }
+    } catch (error) {
+      console.error('Erro ao processar fotos:', error);
+      alert('Erro ao processar as fotos selecionadas.');
+    } finally {
+      setUploadingFoto(false);
+      // Limpar o input para permitir selecionar a mesma foto se necessário
+      e.target.value = '';
+    }
+  };
+
+  const removerFotoDevolucao = (index: number) => {
+    setFotosDevolucao(prev => prev.filter((_, i) => i !== index));
+    setPreviewsDevolucao(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const fecharEditorDevolucao = () => {
+    setMostrarEditorMotivo(null);
+    setMotivoDevolucao('');
+    setFotosDevolucao([]);
+    setPreviewsDevolucao([]);
   };
 
   const handleSuporte = () => {
@@ -1184,8 +1242,17 @@ export default function Pedidos() {
                               <span>🚩</span> Não encontrei o cliente
                             </button>
                           ) : (
-                            <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-4 animate-in fade-in slide-in-from-top-2">
-                              <label className="block text-[10px] font-black text-red-900 uppercase tracking-widest mb-2">Qual o motivo da devolução?</label>
+                            <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-4 animate-in fade-in slide-in-from-top-2 text-left">
+                              <label className="block text-[10px] font-black text-red-900 uppercase tracking-widest mb-2 text-center">Qual o motivo da devolução?</label>
+                              
+                              {/* Nova instrução de provas */}
+                              <div className="bg-white border-2 border-orange-200 rounded-xl p-3 mb-3 shadow-sm">
+                                <p className="text-[11px] text-orange-800 leading-tight">
+                                  📸 <b>EXIGÊNCIA DO SUPORTE:</b><br/>
+                                  Favor anexar uma foto da ligação com a hora identificada que ligou para o cliente e uma foto com a mensagem enviada para ele por WhatsApp com a hora identificada.
+                                </p>
+                              </div>
+
                               <textarea
                                 value={motivoDevolucao}
                                 onChange={(e) => setMotivoDevolucao(e.target.value)}
@@ -1193,6 +1260,44 @@ export default function Pedidos() {
                                 className="w-full p-3 border-2 border-red-200 rounded-xl focus:ring-2 focus:ring-red-200 focus:outline-none text-sm mb-3 min-h-[80px]"
                                 autoFocus
                               />
+
+                              {/* Galeria de Miniaturas e Botão de Anexo */}
+                              <div className="mb-4">
+                                <div className="flex flex-wrap gap-2 mb-2">
+                                  {previewsDevolucao.map((preview, index) => (
+                                    <div key={index} className="relative group">
+                                      <img
+                                        src={preview}
+                                        alt={`Proof ${index}`}
+                                        className="w-16 h-16 object-cover rounded-lg border border-red-200"
+                                      />
+                                      <button
+                                        onClick={() => removerFotoDevolucao(index)}
+                                        className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] shadow-sm"
+                                      >
+                                        ✕
+                                      </button>
+                                    </div>
+                                  ))}
+                                  
+                                  {fotosDevolucao.length < 2 && (
+                                    <label className="w-16 h-16 flex flex-col items-center justify-center border-2 border-dashed border-red-200 rounded-lg bg-white hover:bg-red-50 cursor-pointer transition-colors active:scale-95">
+                                      <span className="text-xl">📷</span>
+                                      <span className="text-[8px] font-bold text-red-400 uppercase">ANEXAR</span>
+                                      <input
+                                        type="file"
+                                        accept="image/*"
+                                        capture="environment"
+                                        className="hidden"
+                                        onChange={handleFotoDevolucaoChange}
+                                        disabled={uploadingFoto}
+                                      />
+                                    </label>
+                                  )}
+                                </div>
+                                {uploadingFoto && <p className="text-[10px] text-red-400 animate-pulse">⏳ Processando imagem...</p>}
+                              </div>
+
                               <div className="flex gap-2">
                                 <button
                                   onClick={() => {
@@ -1202,12 +1307,13 @@ export default function Pedidos() {
                                     }
                                     handleSolicitarDevolucao(pedido.id, motivoDevolucao);
                                   }}
-                                  className="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-bold shadow-md transition-all text-sm"
+                                  disabled={uploadingFoto}
+                                  className={`flex-1 ${uploadingFoto ? 'bg-gray-400' : 'bg-red-600 hover:bg-red-700'} text-white py-3 rounded-xl font-bold shadow-md transition-all text-sm`}
                                 >
-                                  Enviar p/ Suporte
+                                  {uploadingFoto ? 'Aguarde...' : 'Enviar p/ Suporte'}
                                 </button>
                                 <button
-                                  onClick={() => setMostrarEditorMotivo(null)}
+                                  onClick={fecharEditorDevolucao}
                                   className="px-4 py-3 bg-white text-gray-500 rounded-xl font-bold text-xs hover:bg-gray-50"
                                 >
                                   Cancelar

@@ -117,8 +117,8 @@ export const api = {
     return await pedidosApi.finalizarPedido(id);
   },
 
-  async solicitarDevolucao(id: string, motivo: string) {
-    return await pedidosApi.solicitarDevolucao(id, motivo);
+  async solicitarDevolucao(id: string, motivo: string, comprovantes: string[] = []) {
+    return await pedidosApi.solicitarDevolucao(id, motivo, comprovantes);
   },
 
   async processarDevolucao(id: string, motivo: string) {
