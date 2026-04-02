@@ -635,11 +635,11 @@ export default function Pedidos() {
         return;
       }
       
-      // Abre o WhatsApp com instrução manual
-      const instrFotos = fotosDevolucao.length > 0 ? `\n\n📸 *ANEXE AS FOTOS:* Olá suporte, anexei ${fotosDevolucao.length} foto(s) de prova logo abaixo 👇` : '';
-      const msg = encodeURIComponent(`🚩 *SOLICITAÇÃO DE DEVOLUÇÃO*\n\n*Pedido:* #${pedidoId.slice(0, 8)}\n*Motivo:* ${motivo}${instrFotos}\n\n⚠️ *ENTREGADOR:* O sistema salvou suas fotos, mas o WhatsApp exige que você as envie manualmente abaixo.`);
+      // Abre o WhatsApp com instrução manual (Simplificada)
+      const instrFotos = fotosDevolucao.length > 0 ? `\n\n📸 *ESTOU ENVIANDO OS COMPROVANTES:* Anexando ${fotosDevolucao.length} foto(s) de prova logo abaixo 👇` : '';
+      const msg = encodeURIComponent(`🚩 *SOLICITAÇÃO DE DEVOLUÇÃO*\n\n*Pedido:* #${pedidoId.slice(0, 8)}${instrFotos}\n\n⚠️ *ENTREGADOR:* Selecione as fotos na sua galeria e envie aqui.`);
       
-      alert('🚩 Solicitação salva!\n\nO WhatsApp vai abrir. Por favor, ANEXE AS FOTOS na conversa para o suporte.');
+      alert('🚩 Quase lá!\n\nO WhatsApp vai abrir. Selecione as fotos na galeria e envie para o suporte.');
       window.open(`https://wa.me/5531987707962?text=${msg}`, '_blank');
 
       // Atualizar localmente
@@ -1243,16 +1243,17 @@ export default function Pedidos() {
                             </button>
                           ) : (
                             <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-4 animate-in fade-in slide-in-from-top-2 text-left">
-                              <label className="block text-[10px] font-black text-red-900 uppercase tracking-widest mb-2 text-center">Qual o motivo da devolução?</label>
+                              <label className="block text-[10px] font-black text-red-900 uppercase tracking-widest mb-2 text-center underline">Comprovantes de Devolução</label>
                               
                               {/* Nova instrução de provas */}
-                              <div className="bg-white border-2 border-orange-200 rounded-xl p-3 mb-3 shadow-sm">
+                              <div className="bg-white border-2 border-orange-200 rounded-xl p-3 mb-4 shadow-sm">
                                 <p className="text-[11px] text-orange-800 leading-tight">
                                   📸 <b>EXIGÊNCIA DO SUPORTE:</b><br/>
-                                  Favor anexar uma foto da ligação com a hora identificada que ligou para o cliente e uma foto com a mensagem enviada para ele por WhatsApp com a hora identificada.
+                                  Favor anexar uma foto da ligação com a hora identificada e uma foto com a mensagem enviada por WhatsApp.
                                 </p>
                               </div>
 
+                              {/* Campo de Texto - Motivo */}
                               <textarea
                                 value={motivoDevolucao}
                                 onChange={(e) => setMotivoDevolucao(e.target.value)}
@@ -1262,7 +1263,7 @@ export default function Pedidos() {
                               />
 
                               {/* Galeria de Miniaturas e Botão de Anexo */}
-                              <div className="mb-4">
+                              <div className="mb-4 w-full">
                                 <div className="flex flex-wrap gap-2 mb-2">
                                   {previewsDevolucao.map((preview, index) => (
                                     <div key={index} className="relative group">
@@ -1282,12 +1283,11 @@ export default function Pedidos() {
                                   
                                   {fotosDevolucao.length < 2 && (
                                     <label className="w-16 h-16 flex flex-col items-center justify-center border-2 border-dashed border-red-200 rounded-lg bg-white hover:bg-red-50 cursor-pointer transition-colors active:scale-95">
-                                      <span className="text-xl">📷</span>
+                                      <span className="text-xl">📁</span>
                                       <span className="text-[8px] font-bold text-red-400 uppercase">ANEXAR</span>
                                       <input
                                         type="file"
-                                        accept="image/*"
-                                        capture="environment"
+                                        accept=".jpg,.jpeg,.png,.gif,.webp"
                                         className="hidden"
                                         onChange={handleFotoDevolucaoChange}
                                         disabled={uploadingFoto}
@@ -1301,16 +1301,16 @@ export default function Pedidos() {
                               <div className="flex gap-2">
                                 <button
                                   onClick={() => {
-                                    if (!motivoDevolucao.trim()) {
-                                      alert('Por favor, informe o motivo antes de enviar.');
+                                    if (fotosDevolucao.length === 0) {
+                                      alert('⚠️ Por favor, anexe pelo menos uma foto antes de enviar.');
                                       return;
                                     }
-                                    handleSolicitarDevolucao(pedido.id, motivoDevolucao);
+                                    handleSolicitarDevolucao(pedido.id, motivoDevolucao || 'Devolução solicitada com comprovantes.');
                                   }}
                                   disabled={uploadingFoto}
-                                  className={`flex-1 ${uploadingFoto ? 'bg-gray-400' : 'bg-red-600 hover:bg-red-700'} text-white py-3 rounded-xl font-bold shadow-md transition-all text-sm`}
+                                  className={`flex-1 ${uploadingFoto ? 'bg-gray-400' : 'bg-red-600 hover:bg-red-700'} text-white py-4 rounded-xl font-bold shadow-lg transition-all text-sm uppercase tracking-wider`}
                                 >
-                                  {uploadingFoto ? 'Aguarde...' : 'Enviar p/ Suporte'}
+                                  {uploadingFoto ? 'Processando...' : 'Confirmar Devolução'}
                                 </button>
                                 <button
                                   onClick={fecharEditorDevolucao}
