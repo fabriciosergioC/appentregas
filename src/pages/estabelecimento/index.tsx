@@ -1733,7 +1733,7 @@ export default function Estabelecimento() {
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
               {/* Coluna da Esquerda: Novo Pedido */}
               <div className="xl:col-span-5 2xl:col-span-4 xl:sticky xl:top-24">
-                <section className="bg-white rounded-3xl shadow-xl border border-gray-100 p-6">
+                <section className="bg-white rounded-3xl shadow-xl border border-gray-100 p-6 max-h-[calc(100vh-160px)] overflow-y-auto custom-scrollbar">
                   <h2 className="text-xl font-black text-gray-800 mb-6 flex items-center gap-2 border-b border-gray-100 pb-4">
                     <span className="text-3xl">📝</span>
                     Criar Novo Pedido
@@ -1902,7 +1902,7 @@ export default function Estabelecimento() {
 
               {/* Coluna da Direita: Lista de Pedidos */}
               <div className="xl:col-span-7 2xl:col-span-8">
-                <section className="bg-white rounded-3xl shadow-xl border border-gray-100 p-6">
+                <section className="bg-white rounded-3xl shadow-xl border border-gray-100 p-6 max-h-[calc(100vh-160px)] overflow-y-auto custom-scrollbar">
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 border-b border-gray-100 pb-4">
                     <h2 className="text-xl font-black text-gray-800 flex items-center gap-2 mb-2 sm:mb-0">
                       <span className="text-3xl">📦</span>

@@ -104,6 +104,9 @@ export default function CarrinhoPage() {
 
     // Se for PIX, mostrar tela de comprovante
     if (formaPagamento === 'pix') {
+      if (chavesPix.length === 0) {
+        alert('ℹ️ Atenção: O estabelecimento não cadastrou chaves PIX ainda.\n\nPor favor, entre em contato com o estabelecimento e solicite a chave PIX para realizar o pagamento.');
+      }
       setMostrarComprovante(true);
       return;
     }
@@ -722,9 +725,25 @@ export default function CarrinhoPage() {
                     <p className="text-gray-500">⏳ Carregando chaves PIX...</p>
                   </div>
                 ) : chavesPix.length === 0 ? (
-                  <div className="text-center py-4 bg-yellow-50 border border-yellow-200 rounded-xl">
-                    <p className="text-yellow-700 text-sm">⚠️ O estabelecimento não cadastrou chaves PIX ainda.</p>
-                    <p className="text-yellow-600 text-xs mt-1">Você pode finalizar o pedido e combinar o pagamento diretamente com o estabelecimento.</p>
+                  <div className="text-center py-5 bg-orange-50 border-2 border-orange-200 rounded-xl px-4">
+                    <p className="text-orange-800 font-extrabold text-sm mb-1 uppercase tracking-tight">⚠️ Chave PIX não cadastrada!</p>
+                    <p className="text-orange-700 text-xs mb-3">Este estabelecimento ainda não configurou as chaves PIX em nosso sistema.</p>
+                    <div className="bg-white/50 rounded-lg p-3 mb-4 border border-orange-100">
+                      <p className="text-orange-900 font-bold text-[11px] leading-tight">
+                        Por favor, entre em contato com o estabelecimento e solicite a chave PIX para concluir seu pedido.
+                      </p>
+                    </div>
+                    {estabelecimento?.telefone && (
+                      <a
+                        href={`https://wa.me/55${estabelecimento.telefone.replace(/\D/g, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 bg-green-600 text-white px-5 py-2.5 rounded-xl text-xs font-black hover:bg-green-700 transition-all shadow-md hover:shadow-lg active:scale-95"
+                      >
+                        <span className="text-base">💬</span>
+                        SOLICITAR CHAVE VIA WHATSAPP
+                      </a>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-3">

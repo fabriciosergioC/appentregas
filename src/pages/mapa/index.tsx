@@ -70,7 +70,11 @@ export default function Mapa() {
       
       const subtotal = ((parseFloat(String(pedidoAtivo.valor_pedido).replace(',', '.')) || 0) + (parseFloat(String(pedidoAtivo.valor_entregador).replace(',', '.')) || 0)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
       const pag = pedidoAtivo.forma_pagamento ? `\n💳 Forma de Pagamento: ${pedidoAtivo.forma_pagamento}` : '';
-      alert(`✅ Entrega finalizada com sucesso!\n\n💵 Receber do cliente: ${subtotal}${pag}`);
+      
+      const isPix = pedidoAtivo.forma_pagamento?.toUpperCase() === 'PIX';
+      const receberMsg = isPix ? '\n\n✨ Pagamento já realizado via PIX' : `\n\n💵 Receber do cliente: ${subtotal}`;
+      
+      alert(`✅ Entrega finalizada com sucesso!${receberMsg}${pag}`);
       
       router.push('/pedidos');
     } catch (error) {

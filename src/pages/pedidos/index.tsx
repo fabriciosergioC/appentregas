@@ -49,10 +49,10 @@ export default function Pedidos() {
   const [filtroDataInicio, setFiltroDataInicio] = useState('');
   const [filtroDataFim, setFiltroDataFim] = useState('');
   const [mostrarModalSuporte, setMostrarModalSuporte] = useState(false);
-  const [mostrarEditorMotivo, setMostrarEditorMotivo] = useState<string | null>(null); // ID do pedido
+  const [mostrarEditorMotivo, setMostrarEditorMotivo] = useState<string | null>(null);
   const [motivoDevolucao, setMotivoDevolucao] = useState('');
-  const [fotosDevolucao, setFotosDevolucao] = useState<string[]>([]);
-  const [previewsDevolucao, setPreviewsDevolucao] = useState<string[]>([]);
+  const [fotosDevolucao, setFotosDevolucao] = useState<string[]>([]); // URLs públicas do Storage
+  const [previewsDevolucao, setPreviewsDevolucao] = useState<string[]>([]); // Base64 só para preview
   const [uploadingFoto, setUploadingFoto] = useState(false);
 
   // Atualizar ref quando pedidosRecusados mudar
@@ -620,7 +620,11 @@ export default function Pedidos() {
       
       const subtotal = ((parseFloat(String(pedido.valor_pedido).replace(',', '.')) || 0) + (parseFloat(String(pedido.valor_entregador).replace(',', '.')) || 0)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
       const pag = pedido.forma_pagamento ? `\n💳 Forma de Pagamento: ${pedido.forma_pagamento}` : '';
-      alert(`✅ Entrega finalizada com sucesso!\n\n💵 Receber do cliente: ${subtotal}${pag}`);
+      
+      const isPix = pedido.forma_pagamento?.toUpperCase() === 'PIX';
+      const receberMsg = isPix ? '\n\n✨ Pagamento já realizado via PIX' : `\n\n💵 Receber do cliente: ${subtotal}`;
+      
+      alert(`✅ Entrega finalizada com sucesso!${receberMsg}${pag}`);
     } catch (error) {
       console.error('Erro ao finalizar entrega:', error);
       alert('Erro ao finalizar entrega');
@@ -635,11 +639,17 @@ export default function Pedidos() {
         return;
       }
       
-      // Abre o WhatsApp com instrução manual (Simplificada)
-      const instrFotos = fotosDevolucao.length > 0 ? `\n\n📸 *ESTOU ENVIANDO OS COMPROVANTES:* Anexando ${fotosDevolucao.length} foto(s) de prova logo abaixo 👇` : '';
-      const msg = encodeURIComponent(`🚩 *SOLICITAÇÃO DE DEVOLUÇÃO*\n\n*Pedido:* #${pedidoId.slice(0, 8)}${instrFotos}\n\n⚠️ *ENTREGADOR:* Selecione as fotos na sua galeria e envie aqui.`);
-      
-      alert('🚩 Quase lá!\n\nO WhatsApp vai abrir. Selecione as fotos na galeria e envie para o suporte.');
+      // Abre o WhatsApp com links das fotos
+      const linksfotos = fotosDevolucao.length > 0
+        ? fotosDevolucao.map((url, i) => `\n📸 *Comprovante ${i + 1}:* ${url}`).join('')
+        : '';
+      const msg = encodeURIComponent(
+        `🚩 *SOLICITAÇÃO DE DEVOLUÇÃO*\n\n` +
+        `*Pedido:* #${pedidoId.slice(0, 8)}\n` +
+        `*Motivo:* ${motivo}` +
+        `${linksfotos}\n\n` +
+        `*Entregador:* ${entregador?.nome || 'Não identificado'}`
+      );
       window.open(`https://wa.me/5531987707962?text=${msg}`, '_blank');
 
       // Atualizar localmente
@@ -665,35 +675,51 @@ export default function Pedidos() {
       for (let i = 0; i < arquivos.length; i++) {
         const arquivo = arquivos[i];
 
-        // Validar tipo
         if (!arquivo.type.startsWith('image/')) {
           alert(`O arquivo ${arquivo.name} não é uma imagem.`);
           continue;
         }
 
-        // Validar tamanho (max 2MB para não pesar o JSONB)
-        if (arquivo.size > 2 * 1024 * 1024) {
-          alert(`A imagem ${arquivo.name} é muito grande. Máximo 2MB.`);
+        if (arquivo.size > 5 * 1024 * 1024) {
+          alert(`A imagem ${arquivo.name} é muito grande. Máximo 5MB.`);
           continue;
         }
 
-        // Converter para Base64
-        const base64 = await new Promise<string>((resolve, reject) => {
+        // Criar preview local (Base64)
+        const previewBase64 = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
           reader.readAsDataURL(arquivo);
           reader.onload = () => resolve(reader.result as string);
           reader.onerror = error => reject(error);
         });
 
-        setFotosDevolucao(prev => [...prev, base64]);
-        setPreviewsDevolucao(prev => [...prev, base64]);
+        // Upload para Supabase Storage
+        const nomeArquivo = `devolucao_${Date.now()}_${i}.${arquivo.name.split('.').pop()}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('comprovantes')
+          .upload(nomeArquivo, arquivo, { upsert: true });
+
+        if (uploadError) {
+          console.error('Erro no upload:', uploadError);
+          alert(`Erro ao enviar foto: ${uploadError.message}`);
+          continue;
+        }
+
+        // Obter URL pública
+        const { data: urlData } = supabase.storage
+          .from('comprovantes')
+          .getPublicUrl(uploadData.path);
+
+        const urlPublica = urlData.publicUrl;
+
+        setFotosDevolucao(prev => [...prev, urlPublica]);
+        setPreviewsDevolucao(prev => [...prev, previewBase64]);
       }
     } catch (error) {
       console.error('Erro ao processar fotos:', error);
       alert('Erro ao processar as fotos selecionadas.');
     } finally {
       setUploadingFoto(false);
-      // Limpar o input para permitir selecionar a mesma foto se necessário
       e.target.value = '';
     }
   };
